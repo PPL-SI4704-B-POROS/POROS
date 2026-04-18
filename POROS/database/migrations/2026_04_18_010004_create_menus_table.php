@@ -8,15 +8,16 @@ return new class extends Migration
 {
     /**
      * Run the migrations.
+     * Tabel ini menyimpan daftar menu makanan beserta deskripsi gizinya.
      */
     public function up(): void
     {
         Schema::create('menus', function (Blueprint $table) {
             $table->id();
+            $table->string('nama_menu');
+            $table->text('deskripsi_gizi');
             $table->timestamps();
-            $table->foreignId('resep_id')->constrained(); 
-            $table->date('tanggal_pelaksanaan');
-            $table->string('sesi_makan')->default('Siang');
+            $table->softDeletes();
         });
     }
 

@@ -8,15 +8,17 @@ return new class extends Migration
 {
     /**
      * Run the migrations.
+     * Tabel ini menyimpan data kurir pengantar hasil produksi.
      */
     public function up(): void
     {
-        Schema::create('reseps', function (Blueprint $table) {
+        Schema::create('kurirs', function (Blueprint $table) {
             $table->id();
+            $table->string('nama_kurir');
+            $table->string('no_plat');
+            $table->string('kontak');
             $table->timestamps();
-            $table->string('nama_masakan');
-            $table->string('bahan_utama');
-            $table->integer('gramasi_per_porsi');
+            $table->softDeletes();
         });
     }
 
@@ -25,6 +27,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('reseps');
+        Schema::dropIfExists('kurirs');
     }
 };
