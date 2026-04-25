@@ -65,6 +65,23 @@
     .f-input, .f-select { width: 100%; padding: 0.65rem 0.75rem; border: 1.5px solid #d1d5db; border-radius: 10px; font-size: 0.9rem; font-family: inherit; }
     .f-input:focus, .f-select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(255,107,0,0.1); }
 
+    .searchable-select { position: relative; flex: 2; min-width: 180px; }
+    .searchable-select .ss-display { width: 100%; padding: 0.65rem 0.75rem; border: 1.5px solid #d1d5db; border-radius: 10px; font-size: 0.85rem; font-family: inherit; cursor: pointer; background: white; display: flex; justify-content: space-between; align-items: center; color: #374151; }
+    .searchable-select .ss-display.placeholder { color: #9ca3af; }
+    .searchable-select .ss-display:hover { border-color: #9ca3af; }
+    .searchable-select .ss-display .ss-arrow { font-size: 0.6rem; color: #9ca3af; transition: transform 0.2s; }
+    .searchable-select.open .ss-display { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(255,107,0,0.1); }
+    .searchable-select.open .ss-arrow { transform: rotate(180deg); }
+    .searchable-select .ss-dropdown { display: none; position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: white; border: 1.5px solid #d1d5db; border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,0.12); z-index: 100; max-height: 220px; overflow: hidden; }
+    .searchable-select.open .ss-dropdown { display: block; animation: popIn 0.15s ease; }
+    .searchable-select .ss-search { width: 100%; padding: 0.6rem 0.75rem; border: none; border-bottom: 1px solid #e5e7eb; font-size: 0.82rem; font-family: inherit; outline: none; }
+    .searchable-select .ss-search::placeholder { color: #9ca3af; }
+    .searchable-select .ss-options { max-height: 170px; overflow-y: auto; }
+    .searchable-select .ss-option { padding: 0.5rem 0.75rem; font-size: 0.82rem; cursor: pointer; transition: background 0.1s; color: #374151; }
+    .searchable-select .ss-option:hover { background: #fff7ed; color: var(--primary); }
+    .searchable-select .ss-option.selected { background: #fff7ed; font-weight: 700; color: var(--primary); }
+    .searchable-select .ss-empty { padding: 0.75rem; font-size: 0.8rem; color: #9ca3af; text-align: center; }
+
 
     .menu-actions { display: flex; gap: 0.5rem; margin-top: 1rem; }
     .menu-actions .btn-edit-menu { flex: 1; display: flex; align-items: center; justify-content: center; gap: 0.4rem; padding: 0.5rem; border-radius: 8px; font-size: 0.75rem; font-weight: 700; cursor: pointer; transition: all 0.2s; background: #f0f9ff; border: 1px solid #bfdbfe; color: #2563eb; }
@@ -137,21 +154,25 @@
                             </div>
                             @endif
                             @endforeach
-                            @php $firstSch = $dayItems->first(); @endphp
+                            @php
+                                $firstSch = $dayItems->first();
+                                if ($firstSch->menu) {
+                                    $viewData = json_encode([
+                                        'menu_name' => $firstSch->menu->nama_menu,
+                                        'porsi' => $firstSch->total_target_porsi,
+                                        'kalori' => $firstSch->menu->total_kalori,
+                                        'protein' => $firstSch->menu->total_protein,
+                                        'karbohidrat' => $firstSch->menu->total_karbohidrat,
+                                        'lemak' => $firstSch->menu->total_lemak,
+                                        'ingredients' => $firstSch->menu->reseps->map(function($r) {
+                                            return ['nama' => $r->bahanBaku->nama_bahan, 'gram' => $r->gramasi_per_porsi];
+                                        })->values()->toArray(),
+                                    ]);
+                                }
+                            @endphp
                             <div class="day-actions">
                                 @if($firstSch->menu)
-                                <button type="button" class="btn-view" onclick='openViewScheduleModal(@json([
-                                    "menu_name" => $firstSch->menu->nama_menu,
-                                    "porsi" => $firstSch->total_target_porsi,
-                                    "kalori" => $firstSch->menu->total_kalori,
-                                    "protein" => $firstSch->menu->total_protein,
-                                    "karbohidrat" => $firstSch->menu->total_karbohidrat,
-                                    "lemak" => $firstSch->menu->total_lemak,
-                                    "ingredients" => $firstSch->menu->reseps->map(fn($r) => [
-                                        "nama" => $r->bahanBaku->nama_bahan,
-                                        "gram" => $r->gramasi_per_porsi,
-                                    ])
-                                ]))'>👁 View</button>
+                                <button type="button" class="btn-view" onclick='openViewScheduleModal({!! htmlspecialchars($viewData, ENT_QUOTES, "UTF-8") !!})'>👁 View</button>
                                 @endif
                                 <button type="button" class="btn-edit" onclick="openEditScheduleModal('{{ $firstSch->id }}', '{{ $key }}', '{{ $firstSch->menu_id }}', '{{ $firstSch->total_target_porsi }}')">✏️ Edit</button>
                                 <form action="{{ route('schedule.destroy', $firstSch->id) }}" method="POST" style="display:inline;" onsubmit="return confirm('Hapus jadwal ini?')">
@@ -242,12 +263,7 @@
                 <label class="f-label">Bahan Baku & Gramasi per Porsi</label>
                 <div id="ingredientRows">
                     <div class="ingredient-row" style="display:flex;gap:0.5rem;margin-bottom:0.5rem;align-items:center;">
-                        <select name="ingredients[0][bahan_id]" class="f-select" required style="flex:2;min-width:180px;">
-                            <option value="">Pilih Bahan</option>
-                            @foreach($bahanBakus as $b)
-                            <option value="{{ $b->id }}">{{ $b->nama_bahan }}</option>
-                            @endforeach
-                        </select>
+                        <div class="searchable-select" data-name="ingredients[0][bahan_id]"></div>
                         <input type="number" step="0.01" name="ingredients[0][gramasi]" class="f-input" placeholder="gram" required style="flex:1;min-width:80px;">
                     </div>
                 </div>
@@ -422,21 +438,113 @@
 <script>
 let ic = 1;
 
+// ── Bahan data (sorted A-Z from controller) ──
+const bahanList = [
+    @foreach($bahanBakus as $b)
+    { id: {{ $b->id }}, nama: "{{ addslashes($b->nama_bahan) }}" },
+    @endforeach
+];
+
+function createSearchableSelect(container, fieldName, selectedId) {
+    const wrapper = container;
+    wrapper.innerHTML = '';
+
+    const hiddenInput = document.createElement('input');
+    hiddenInput.type = 'hidden';
+    hiddenInput.name = fieldName;
+    hiddenInput.required = true;
+    hiddenInput.value = selectedId || '';
+
+    const display = document.createElement('div');
+    display.className = 'ss-display placeholder';
+    const selectedItem = bahanList.find(b => b.id == selectedId);
+    display.innerHTML = `<span>${selectedItem ? selectedItem.nama : 'Pilih Bahan...'}</span><span class="ss-arrow">▼</span>`;
+    if (selectedItem) display.classList.remove('placeholder');
+
+    const dropdown = document.createElement('div');
+    dropdown.className = 'ss-dropdown';
+    dropdown.innerHTML = `<input type="text" class="ss-search" placeholder="Cari bahan...">
+        <div class="ss-options"></div>`;
+
+    wrapper.appendChild(hiddenInput);
+    wrapper.appendChild(display);
+    wrapper.appendChild(dropdown);
+
+    const searchInput = dropdown.querySelector('.ss-search');
+    const optionsContainer = dropdown.querySelector('.ss-options');
+
+    function renderOptions(filter) {
+        const keyword = (filter || '').toLowerCase();
+        const filtered = bahanList.filter(b => b.nama.toLowerCase().includes(keyword));
+        if (filtered.length === 0) {
+            optionsContainer.innerHTML = '<div class="ss-empty">Tidak ditemukan</div>';
+            return;
+        }
+        optionsContainer.innerHTML = filtered.map(b =>
+            `<div class="ss-option${b.id == hiddenInput.value ? ' selected' : ''}" data-id="${b.id}">${b.nama}</div>`
+        ).join('');
+        optionsContainer.querySelectorAll('.ss-option').forEach(opt => {
+            opt.addEventListener('click', function() {
+                hiddenInput.value = this.dataset.id;
+                display.innerHTML = `<span>${this.textContent}</span><span class="ss-arrow">▼</span>`;
+                display.classList.remove('placeholder');
+                wrapper.classList.remove('open');
+            });
+        });
+    }
+
+    display.addEventListener('click', function(e) {
+        e.stopPropagation();
+        // Close all other dropdowns
+        document.querySelectorAll('.searchable-select.open').forEach(s => { if (s !== wrapper) s.classList.remove('open'); });
+        wrapper.classList.toggle('open');
+        if (wrapper.classList.contains('open')) {
+            searchInput.value = '';
+            renderOptions('');
+            setTimeout(() => searchInput.focus(), 50);
+        }
+    });
+
+    searchInput.addEventListener('input', function() {
+        renderOptions(this.value);
+    });
+
+    searchInput.addEventListener('click', function(e) { e.stopPropagation(); });
+
+    renderOptions('');
+}
+
+// Close dropdowns when clicking outside
+document.addEventListener('click', function() {
+    document.querySelectorAll('.searchable-select.open').forEach(s => s.classList.remove('open'));
+});
+
+// Initialize first ingredient row
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('#ingredientRows .searchable-select').forEach(el => {
+        createSearchableSelect(el, el.dataset.name, '');
+    });
+});
+
 function addIngredientRow() {
     const c = document.getElementById('ingredientRows');
     const r = document.createElement('div');
     r.className = 'ingredient-row';
     r.style.cssText = 'display:flex;gap:0.5rem;margin-bottom:0.5rem;align-items:center;';
-    r.innerHTML = `
-        <select name="ingredients[${ic}][bahan_id]" class="f-select" required style="flex:2;min-width:180px;">
-            <option value="">Pilih Bahan</option>
-            @foreach($bahanBakus as $b)
-            <option value="{{ $b->id }}">{{ $b->nama_bahan }}</option>
-            @endforeach
-        </select>
-        <input type="number" step="0.01" name="ingredients[${ic}][gramasi]" class="f-input" placeholder="gram" required style="flex:1;min-width:80px;">
-    `;
+    const ssDiv = document.createElement('div');
+    ssDiv.className = 'searchable-select';
+    const gramInput = document.createElement('input');
+    gramInput.type = 'number';
+    gramInput.step = '0.01';
+    gramInput.name = `ingredients[${ic}][gramasi]`;
+    gramInput.className = 'f-input';
+    gramInput.placeholder = 'gram';
+    gramInput.required = true;
+    gramInput.style.cssText = 'flex:1;min-width:80px;';
+    r.appendChild(ssDiv);
+    r.appendChild(gramInput);
     c.appendChild(r);
+    createSearchableSelect(ssDiv, `ingredients[${ic}][bahan_id]`, '');
     ic++;
 }
 
@@ -456,7 +564,6 @@ function closeDeleteConfirm() {
 
 // ── Edit Menu Modal ──
 let editIc = 0;
-const bahanOptions = `<option value="">Pilih Bahan</option>@foreach($bahanBakus as $b)<option value="{{ $b->id }}">{{ $b->nama_bahan }}</option>@endforeach`;
 
 function openEditMenuModal(menuId, menuName, ingredients) {
     document.getElementById('editMenuForm').action = '/menu/' + menuId;
@@ -475,13 +582,27 @@ function addEditIngredientRow(bahanId, gramasi) {
     const r = document.createElement('div');
     r.className = 'ingredient-row';
     r.style.cssText = 'display:flex;gap:0.5rem;margin-bottom:0.5rem;align-items:center;';
-    r.innerHTML = `
-        <select name="ingredients[${editIc}][bahan_id]" class="f-select" required style="flex:2;min-width:180px;">${bahanOptions}</select>
-        <input type="number" step="0.01" name="ingredients[${editIc}][gramasi]" class="f-input" placeholder="gram" required style="flex:1;min-width:80px;" value="${gramasi || ''}">
-        <button type="button" onclick="this.parentElement.remove()" style="background:none;border:none;color:#ef4444;cursor:pointer;font-size:1.2rem;padding:0.25rem;">&times;</button>
-    `;
-    if (bahanId) r.querySelector('select').value = bahanId;
+    const ssDiv = document.createElement('div');
+    ssDiv.className = 'searchable-select';
+    const gramInput = document.createElement('input');
+    gramInput.type = 'number';
+    gramInput.step = '0.01';
+    gramInput.name = `ingredients[${editIc}][gramasi]`;
+    gramInput.className = 'f-input';
+    gramInput.placeholder = 'gram';
+    gramInput.required = true;
+    gramInput.style.cssText = 'flex:1;min-width:80px;';
+    gramInput.value = gramasi || '';
+    const removeBtn = document.createElement('button');
+    removeBtn.type = 'button';
+    removeBtn.innerHTML = '&times;';
+    removeBtn.style.cssText = 'background:none;border:none;color:#ef4444;cursor:pointer;font-size:1.2rem;padding:0.25rem;';
+    removeBtn.onclick = function() { r.remove(); };
+    r.appendChild(ssDiv);
+    r.appendChild(gramInput);
+    r.appendChild(removeBtn);
     c.appendChild(r);
+    createSearchableSelect(ssDiv, `ingredients[${editIc}][bahan_id]`, bahanId || '');
     editIc++;
 }
 
@@ -500,10 +621,11 @@ function openViewScheduleModal(data) {
     let totalGramPerPorsi = 0;
     let totalGramAll = 0;
     data.ingredients.forEach(function(ing) {
-        const totalG = ing.gram * data.porsi;
-        totalGramPerPorsi += ing.gram;
+        const gram = parseFloat(ing.gram) || 0;
+        const totalG = gram * data.porsi;
+        totalGramPerPorsi += gram;
         totalGramAll += totalG;
-        ingHtml += `<tr><td>${ing.nama}</td><td style="text-align:right;">${fmtG(ing.gram)}</td><td style="text-align:right;">${fmtG(totalG)}</td></tr>`;
+        ingHtml += `<tr><td>${ing.nama}</td><td style="text-align:right;">${fmtG(gram)}</td><td style="text-align:right;">${fmtG(totalG)}</td></tr>`;
     });
     ingHtml += `<tr class="row-total"><td>Total Bahan</td><td style="text-align:right;">${fmtG(totalGramPerPorsi)}</td><td style="text-align:right;">${fmtG(totalGramAll)}</td></tr>`;
     ingBody.innerHTML = ingHtml;
