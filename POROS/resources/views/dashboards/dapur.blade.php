@@ -70,7 +70,7 @@
                     <div style="font-size: 1.5rem;">⚠️</div>
                     <div>
                         <div style="font-weight: 700;">Stock Low: {{ $item->nama_bahan }}</div>
-                        <div style="font-size: 0.8rem;">Sisa {{ $item->stok }} {{ $item->satuan }}. Minimal {{ $item->stok_minimal }}.</div>
+                        <div style="font-size: 0.8rem;">Sisa {{ $item->stok >= 1000 ? number_format($item->stok / 1000, 1) . ' kg' : number_format($item->stok, 0) . ' g' }}. Minimal {{ $item->stok_minimal >= 1000 ? number_format($item->stok_minimal / 1000, 1) . ' kg' : number_format($item->stok_minimal, 0) . ' g' }}.</div>
                     </div>
                 </div>
                 @empty

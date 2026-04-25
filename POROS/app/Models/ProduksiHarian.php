@@ -5,23 +5,19 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-class Resep extends Model
+class ProduksiHarian extends Model
 {
     use SoftDeletes;
 
     protected $fillable = [
-        'gramasi_per_porsi',
+        'tanggal_produksi',
+        'total_target_porsi',
+        'status_produksi',
         'menu_id',
-        'bahan_id',
     ];
 
     public function menu()
     {
         return $this->belongsTo(Menu::class);
-    }
-
-    public function bahanBaku()
-    {
-        return $this->belongsTo(BahanBaku::class, 'bahan_id');
     }
 }

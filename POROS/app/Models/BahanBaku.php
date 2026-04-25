@@ -12,6 +12,10 @@ class BahanBaku extends Model
     protected $fillable = [
         'nama_bahan',
         'satuan',
+        'energi_per_100g',
+        'protein_per_100g',
+        'karbohidrat_per_100g',
+        'lemak_per_100g',
         'stok',
         'stok_minimal',
         'supplier_id',
@@ -21,4 +25,25 @@ class BahanBaku extends Model
     {
         return $this->belongsTo(Supplier::class);
     }
+    // ---- Accessors for per‑gram nutrient values ----
+    public function getEnergiPerGramAttribute()
+    {
+        return $this->energi_per_100g / 100;
+    }
+
+    public function getProteinPerGramAttribute()
+    {
+        return $this->protein_per_100g / 100;
+    }
+
+    public function getKarbohidratPerGramAttribute()
+    {
+        return $this->karbohidrat_per_100g / 100;
+    }
+
+    public function getLemakPerGramAttribute()
+    {
+        return $this->lemak_per_100g / 100;
+    }
 }
+
