@@ -21,9 +21,12 @@ Route::middleware(['auth'])->group(function () {
     // Profile Routes
     Route::get('/profile/edit', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::post('/profile/update', [ProfileController::class, 'update'])->name('profile.update');
-    Route::get('/dashboard/meal-planning', function () {
-        return view('dashboards.meal-planning');
-    })->name('dashboard.meal_planning');
+    Route::get('/dashboard/meal-planning', [MenuController::class, 'index'])->name('dashboard.meal_planning');
+    
+    Route::post('/dashboard/schedule', [\App\Http\Controllers\ProduksiHarianController::class, 'store'])->name('schedule.store');
+    Route::put('/dashboard/schedule/{id}', [\App\Http\Controllers\ProduksiHarianController::class, 'update'])->name('schedule.update');
+    Route::delete('/dashboard/schedule/{id}', [\App\Http\Controllers\ProduksiHarianController::class, 'destroy'])->name('schedule.destroy');
+
     Route::middleware(['role:super admin'])->group(function () {
         Route::get('/dashboard/superadmin', [DashboardController::class, 'superadmin'])->name('dashboard.superadmin');
 
