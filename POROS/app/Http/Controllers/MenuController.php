@@ -19,7 +19,7 @@ class MenuController extends Controller
     public function index(Request $request)
     {
         $menus = Menu::with('reseps.bahanBaku')->get();
-        $bahanBakus = BahanBaku::all();
+        $bahanBakus = BahanBaku::orderBy('nama_bahan', 'asc')->get();
         
         // Support week navigation via query param
         $weekOffset = (int) $request->query('week', 0);
