@@ -15,6 +15,8 @@ class Siswa extends Model
         'kelas',
         'alergi',
         'sekolah_id',
+        'contact',
+        'status',
     ];
 
     public function sekolah()

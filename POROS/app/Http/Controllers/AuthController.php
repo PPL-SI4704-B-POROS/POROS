@@ -23,6 +23,16 @@ class AuthController extends Controller
         ]);
 
         if (Auth::attempt($credentials, $request->remember)) {
+            if (Auth::user()->status == 'Inactive') {
+                Auth::logout();
+                $request->session()->invalidate();
+                $request->session()->regenerateToken();
+                
+                return back()->withErrors([
+                    'email' => 'Akun Anda dinonaktifkan. Silakan hubungi Administrator.',
+                ])->onlyInput('email');
+            }
+
             $request->session()->regenerate();
             return $this->redirectUserByRole();
         }
@@ -42,13 +52,6 @@ class AuthController extends Controller
 
     protected function redirectUserByRole()
     {
-        $role = Auth::user()->role->nama_role;
-
-        return match ($role) {
-            'super admin' => redirect()->intended('/dashboard/superadmin'),
-            'dapur' => redirect()->intended('/dashboard/dapur'),
-            'sekolah' => redirect()->intended('/dashboard/sekolah'),
-            default => redirect('/login'),
-        };
+        return redirect()->intended('/dashboard');
     }
 }

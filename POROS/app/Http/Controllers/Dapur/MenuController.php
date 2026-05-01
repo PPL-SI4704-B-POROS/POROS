@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Dapur;
 
 use App\Models\Menu;
 use App\Models\Resep;
@@ -31,7 +31,7 @@ class MenuController extends Controller
             ->get()
             ->groupBy('tanggal_produksi');
 
-        return view('dashboards.meal-planning', compact('menus', 'bahanBakus', 'schedules', 'startOfWeek', 'weekOffset'));
+        return view('dashboards.dapur.meal-planning', compact('menus', 'bahanBakus', 'schedules', 'startOfWeek', 'weekOffset'));
     }
 
     /**

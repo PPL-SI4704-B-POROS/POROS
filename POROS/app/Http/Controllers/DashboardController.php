@@ -13,7 +13,10 @@ use Carbon\Carbon;
 
 class DashboardController extends Controller
 {
-    public function superadmin()
+    /**
+     * Shared dashboard for all roles.
+     */
+    public function index()
     {
         // 1. Total Students & Trend
         $totalStudents = Siswa::count();
@@ -68,7 +71,7 @@ class DashboardController extends Controller
             ->limit(5)
             ->get();
 
-        return view('dashboards.superadmin', compact(
+        return view('dashboards.index', compact(
             'totalStudents', 'studentTrend', 
             'todayDeliveriesCount', 'completedDeliveries',
             'stockStatus', 'lowStockCount',
@@ -77,7 +80,4 @@ class DashboardController extends Controller
             'wasteTrends', 'lowStockItems'
         ));
     }
-
-    public function dapur() { return $this->superadmin(); } // Simplifying for now
-    public function sekolah() { return $this->superadmin(); } // Simplifying for now
 }
