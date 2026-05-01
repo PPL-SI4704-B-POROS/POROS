@@ -1,8 +1,9 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Dapur;
 
 use App\Models\ProduksiHarian;
+use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 
 class ProduksiHarianController extends Controller

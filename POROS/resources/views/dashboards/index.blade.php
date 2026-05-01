@@ -3,37 +3,7 @@
 @section('title', 'Dashboard Overview')
 
 @section('styles')
-<style>
-    .dashboard-header { margin-bottom: 2rem; }
-    .dashboard-header h1 { font-size: 2rem; font-weight: 800; color: #0f172a; margin-bottom: 0.5rem; }
-    .dashboard-header p { color: #64748b; font-size: 1rem; }
-
-    /* Stats Grid */
-    .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.5rem; margin-bottom: 2rem; }
-    .stat-card { background: white; padding: 1.5rem; border-radius: 20px; border: 1px solid #f1f5f9; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
-    .stat-label { color: #64748b; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.75rem; }
-    .stat-value { font-size: 2rem; font-weight: 800; color: #0f172a; margin-bottom: 0.5rem; }
-    
-    .stat-icon { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; margin-left: auto; }
-    .icon-blue { background: #eff6ff; color: #3b82f6; }
-    .icon-green { background: #f0fdf4; color: #22c55e; }
-    .icon-orange { background: #fff7ed; color: #f59e0b; }
-    .icon-red { background: #fef2f2; color: #ef4444; }
-
-    .trend-indicator { display: flex; align-items: center; gap: 0.5rem; font-size: 0.8rem; font-weight: 600; }
-    .trend-up { color: #22c55e; }
-    .trend-down { color: #ef4444; }
-    .trend-sub { color: #64748b; font-weight: 400; }
-
-    /* Main Chart Grid */
-    .dashboard-main-grid { display: grid; grid-template-columns: 1.8fr 1fr; gap: 1.5rem; margin-bottom: 2rem; }
-    .chart-card { background: white; padding: 1.5rem; border-radius: 20px; border: 1px solid #f1f5f9; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
-    .chart-title { font-size: 1.1rem; font-weight: 700; color: #0f172a; margin-bottom: 2rem; }
-
-    .delivery-stat-list { margin-top: 1.5rem; }
-    .delivery-stat-item { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; font-size: 0.85rem; }
-    .bullet { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 0.5rem; }
-</style>
+<link rel="stylesheet" href="{{ asset('css/dashboard-home.css') }}">
 @endsection
 
 @section('content')

@@ -3,108 +3,7 @@
 @section('title', 'Meal Planning')
 
 @section('styles')
-<style>
-    .week-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1rem; }
-    .day-card { border: 2px dashed #d1d5db; border-radius: 12px; padding: 1rem; min-height: 160px; display: flex; flex-direction: column; transition: all 0.2s; position: relative; }
-    .day-card.has-menu { border: 2px solid var(--primary); background: #fff5ed; }
-    .day-card .day-name { font-weight: 700; color: #0c1e35; font-size: 0.9rem; }
-    .day-card .day-date { font-size: 0.75rem; color: #7b8ea3; margin-bottom: 0.75rem; }
-    .day-card .day-icon { position: absolute; top: 0.75rem; right: 0.75rem; color: #c0c8d4; }
-    .day-card.has-menu .day-icon { color: var(--primary); }
-    .day-card .menu-name { font-weight: 700; font-size: 0.85rem; color: #0c1e35; margin-top: auto; }
-    .day-card .menu-portions { font-size: 0.7rem; color: #7b8ea3; }
-    .day-card .change-link { color: var(--primary); font-size: 0.75rem; font-weight: 700; text-decoration: none; cursor: pointer; }
-    .add-menu-link { color: #7b8ea3; font-size: 0.8rem; font-weight: 600; cursor: pointer; margin-top: auto; background: none; border: none; }
-    .day-actions { display: flex; gap: 0.3rem; margin-top: auto; }
-    .day-actions button { background: none; border: none; cursor: pointer; font-size: 0.65rem; font-weight: 700; padding: 0.2rem 0.35rem; border-radius: 6px; transition: all 0.15s; }
-    .day-actions .btn-view { color: #2563eb; }
-    .day-actions .btn-view:hover { background: #eff6ff; }
-    .day-actions .btn-edit { color: var(--primary); }
-    .day-actions .btn-edit:hover { background: #fff7ed; }
-    .day-actions .btn-del { color: #ef4444; }
-    .day-actions .btn-del:hover { background: #fef2f2; }
-
-    .view-modal-box { background: white; border-radius: 20px; padding: 2rem; width: 520px; max-width: 92%; max-height: 88vh; overflow-y: auto; box-shadow: 0 25px 50px rgba(0,0,0,0.15); animation: popIn 0.2s ease; }
-    .view-section { margin-bottom: 1.25rem; }
-    .view-section-title { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; color: #9ca3af; letter-spacing: 0.05em; margin-bottom: 0.5rem; }
-    .view-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
-    .view-table th { text-align: left; padding: 0.5rem 0.6rem; background: #f8fafc; color: #6b7280; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid #e5e7eb; }
-    .view-table td { padding: 0.5rem 0.6rem; border-bottom: 1px solid #f3f4f6; color: #374151; }
-    .view-table tr:last-child td { border-bottom: none; }
-    .view-table .row-total { background: #fff7ed; font-weight: 700; }
-    .view-table .row-total td { color: #0c1e35; border-top: 2px solid var(--primary); }
-
-    .menu-lib-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 1.5rem; }
-    .menu-lib-card { background: white; border: 1px solid #e5e7eb; border-radius: 16px; padding: 1.5rem; box-shadow: 0 2px 8px rgba(0,0,0,0.04); position: relative; }
-    .menu-lib-card .food-icon { position: absolute; top: 1.25rem; right: 1.25rem; color: var(--primary); }
-    .menu-lib-card .menu-title { font-size: 1.1rem; font-weight: 700; color: #0c1e35; margin-bottom: 0.25rem; padding-right: 2rem; }
-    .menu-lib-card .menu-kcal { font-size: 0.85rem; color: #6b7280; margin-bottom: 1rem; }
-    .nutrient-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; margin-bottom: 1rem; }
-    .nutrient-box { padding: 0.6rem 0.75rem; border-radius: 10px; }
-    .nutrient-box.protein { background: #dbeafe; }
-    .nutrient-box.carbs { background: #fff7ed; }
-    .nutrient-box.fat { background: #fef9c3; }
-    .nutrient-box .n-label { font-size: 0.65rem; font-weight: 600; text-transform: uppercase; }
-    .nutrient-box .n-value { font-size: 1.1rem; font-weight: 800; }
-    .nutrient-box.protein .n-label, .nutrient-box.protein .n-value { color: #2563eb; }
-    .nutrient-box.carbs .n-label, .nutrient-box.carbs .n-value { color: #ea580c; }
-    .nutrient-box.fat .n-label, .nutrient-box.fat .n-value { color: #ca8a04; }
-
-    .portion-info { background: #f8fafc; border-radius: 10px; padding: 0.75rem; font-size: 0.8rem; }
-    .portion-info .p-row { display: flex; justify-content: space-between; padding: 0.2rem 0; color: #4b5563; }
-    .portion-info .p-row span:last-child { font-weight: 700; color: #0c1e35; }
-
-    .btn-outline { background: white; border: 2px solid var(--primary); color: var(--primary); padding: 0.6rem 1.25rem; border-radius: 10px; font-weight: 700; font-size: 0.85rem; cursor: pointer; transition: all 0.2s; }
-    .btn-outline:hover { background: #fff5ed; }
-
-    .modal-form-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; }
-    .modal-form-overlay.visible { display: flex; }
-    .modal-form-box { background: white; border-radius: 20px; padding: 2rem; width: 500px; max-width: 92%; max-height: 88vh; overflow-y: auto; box-shadow: 0 25px 50px rgba(0,0,0,0.15); }
-    .modal-form-box h3 { font-size: 1.2rem; font-weight: 800; color: #0c1e35; }
-    .f-label { display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 0.4rem; color: #374151; }
-    .f-input, .f-select { width: 100%; padding: 0.65rem 0.75rem; border: 1.5px solid #d1d5db; border-radius: 10px; font-size: 0.9rem; font-family: inherit; }
-    .f-input:focus, .f-select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(255,107,0,0.1); }
-
-    .searchable-select { position: relative; flex: 2; min-width: 180px; }
-    .searchable-select .ss-display { width: 100%; padding: 0.65rem 0.75rem; border: 1.5px solid #d1d5db; border-radius: 10px; font-size: 0.85rem; font-family: inherit; cursor: pointer; background: white; display: flex; justify-content: space-between; align-items: center; color: #374151; }
-    .searchable-select .ss-display.placeholder { color: #9ca3af; }
-    .searchable-select .ss-display:hover { border-color: #9ca3af; }
-    .searchable-select .ss-display .ss-arrow { font-size: 0.6rem; color: #9ca3af; transition: transform 0.2s; }
-    .searchable-select.open .ss-display { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(255,107,0,0.1); }
-    .searchable-select.open .ss-arrow { transform: rotate(180deg); }
-    .searchable-select .ss-dropdown { display: none; position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: white; border: 1.5px solid #d1d5db; border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,0.12); z-index: 100; max-height: 220px; overflow: hidden; }
-    .searchable-select.open .ss-dropdown { display: block; animation: popIn 0.15s ease; }
-    .searchable-select .ss-search { width: 100%; padding: 0.6rem 0.75rem; border: none; border-bottom: 1px solid #e5e7eb; font-size: 0.82rem; font-family: inherit; outline: none; }
-    .searchable-select .ss-search::placeholder { color: #9ca3af; }
-    .searchable-select .ss-options { max-height: 170px; overflow-y: auto; }
-    .searchable-select .ss-option { padding: 0.5rem 0.75rem; font-size: 0.82rem; cursor: pointer; transition: background 0.1s; color: #374151; }
-    .searchable-select .ss-option:hover { background: #fff7ed; color: var(--primary); }
-    .searchable-select .ss-option.selected { background: #fff7ed; font-weight: 700; color: var(--primary); }
-    .searchable-select .ss-empty { padding: 0.75rem; font-size: 0.8rem; color: #9ca3af; text-align: center; }
-
-
-    .menu-actions { display: flex; gap: 0.5rem; margin-top: 1rem; }
-    .menu-actions .btn-edit-menu { flex: 1; display: flex; align-items: center; justify-content: center; gap: 0.4rem; padding: 0.5rem; border-radius: 8px; font-size: 0.75rem; font-weight: 700; cursor: pointer; transition: all 0.2s; background: #f0f9ff; border: 1px solid #bfdbfe; color: #2563eb; }
-    .menu-actions .btn-edit-menu:hover { background: #dbeafe; }
-    .menu-actions .btn-delete-menu { flex: 1; display: flex; align-items: center; justify-content: center; gap: 0.4rem; padding: 0.5rem; border-radius: 8px; font-size: 0.75rem; font-weight: 700; cursor: pointer; transition: all 0.2s; background: #fef2f2; border: 1px solid #fecaca; color: #ef4444; }
-    .menu-actions .btn-delete-menu:hover { background: #fee2e2; }
-
-    .confirm-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; justify-content: center; align-items: center; }
-    .confirm-overlay.visible { display: flex; }
-    .confirm-box { background: white; border-radius: 20px; padding: 2rem; width: 380px; max-width: 90%; text-align: center; box-shadow: 0 25px 50px rgba(0,0,0,0.2); animation: popIn 0.2s ease; }
-    .confirm-box .confirm-icon { font-size: 2.5rem; margin-bottom: 0.75rem; }
-    .confirm-box h4 { font-size: 1.1rem; font-weight: 800; color: #0c1e35; margin-bottom: 0.5rem; }
-    .confirm-box p { font-size: 0.85rem; color: #6b7280; margin-bottom: 1.5rem; }
-    .confirm-box .confirm-actions { display: flex; gap: 0.75rem; }
-    .confirm-box .btn-cancel { flex: 1; padding: 0.7rem; border: 1.5px solid #d1d5db; border-radius: 10px; background: white; font-weight: 700; font-size: 0.85rem; cursor: pointer; color: #374151; transition: all 0.2s; }
-    .confirm-box .btn-cancel:hover { background: #f3f4f6; }
-    .confirm-box .btn-confirm-delete { flex: 1; padding: 0.7rem; border: none; border-radius: 10px; background: #ef4444; color: white; font-weight: 700; font-size: 0.85rem; cursor: pointer; transition: all 0.2s; }
-    .confirm-box .btn-confirm-delete:hover { background: #dc2626; }
-    @keyframes popIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-
-    @media (max-width: 900px) { .week-grid { grid-template-columns: repeat(3, 1fr); } }
-    @media (max-width: 600px) { .week-grid { grid-template-columns: repeat(2, 1fr); } }
-</style>
+<link rel="stylesheet" href="{{ asset('css/meal-planning.css') }}">
 @endsection
 
 @section('content')
@@ -157,6 +56,15 @@
                             @php
                                 $firstSch = $dayItems->first();
                                 if ($firstSch->menu) {
+                                    $totalSerat = 0;
+                                    $totalKalsium = 0;
+                                    $totalBesi = 0;
+                                    foreach($firstSch->menu->reseps as $r) {
+                                        $totalSerat += $r->bahanBaku->serat_per_gram * $r->gramasi_per_porsi;
+                                        $totalKalsium += $r->bahanBaku->kalsium_per_gram * $r->gramasi_per_porsi;
+                                        $totalBesi += $r->bahanBaku->besi_per_gram * $r->gramasi_per_porsi;
+                                    }
+
                                     $viewData = json_encode([
                                         'menu_name' => $firstSch->menu->nama_menu,
                                         'porsi' => $firstSch->total_target_porsi,
@@ -164,6 +72,9 @@
                                         'protein' => $firstSch->menu->total_protein,
                                         'karbohidrat' => $firstSch->menu->total_karbohidrat,
                                         'lemak' => $firstSch->menu->total_lemak,
+                                        'serat' => $totalSerat,
+                                        'kalsium' => $totalKalsium,
+                                        'besi' => $totalBesi,
                                         'ingredients' => $firstSch->menu->reseps->map(function($r) {
                                             return ['nama' => $r->bahanBaku->nama_bahan, 'gram' => $r->gramasi_per_porsi];
                                         })->values()->toArray(),
@@ -229,7 +140,36 @@
                         @endforeach
                     </div>
 
+                    @php
+                        $totalSerat = 0;
+                        $totalKalsium = 0;
+                        $totalBesi = 0;
+                        foreach($menu->reseps as $r) {
+                            $totalSerat += $r->bahanBaku->serat_per_gram * $r->gramasi_per_porsi;
+                            $totalKalsium += $r->bahanBaku->kalsium_per_gram * $r->gramasi_per_porsi;
+                            $totalBesi += $r->bahanBaku->besi_per_gram * $r->gramasi_per_porsi;
+                        }
+
+                        $menuData = [
+                            "nama_menu" => $menu->nama_menu,
+                            "kalori" => $menu->total_kalori,
+                            "protein" => $menu->total_protein,
+                            "karbohidrat" => $menu->total_karbohidrat,
+                            "lemak" => $menu->total_lemak,
+                            "serat" => $totalSerat,
+                            "kalsium" => $totalKalsium,
+                            "besi" => $totalBesi,
+                            "ingredients" => $menu->reseps->map(function($r) {
+                                return ["nama" => $r->bahanBaku->nama_bahan, "gram" => $r->gramasi_per_porsi];
+                            })
+                        ];
+                    @endphp
+
                     <div class="menu-actions">
+                        <button type="button" class="btn-view-menu" style="background:var(--primary); color:#ffffff; padding:0.4rem 0.6rem; border-radius:6px; border:none; cursor:pointer; display:flex; align-items:center; gap:0.25rem; font-size:0.75rem; font-weight:600;" onclick='openViewMenuLibraryModal(@json($menuData))'>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                            View
+                        </button>
                         <button type="button" class="btn-edit-menu" onclick='openEditMenuModal(@json($menu->id), @json($menu->nama_menu), @json($menu->reseps->map(fn($r) => ["bahan_id" => $r->bahan_id, "gramasi" => $r->gramasi_per_porsi])))'>
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                             Edit
@@ -297,6 +237,40 @@
             <small style="display:block;color:#7b8ea3;margin-bottom:1rem;">*Kalori & nutrisi akan dihitung ulang otomatis.</small>
             <button type="submit" class="btn btn-primary" style="width:100%;">Simpan Perubahan</button>
         </form>
+    </div>
+</div>
+
+{{-- ═══ MODAL: VIEW MENU LIBRARY ═══ --}}
+<div id="viewMenuLibraryModal" class="modal-form-overlay">
+    <div class="modal-form-box" style="width: 480px; padding: 2rem;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
+            <h3 id="vmlName" style="color:var(--primary);">Nama Menu</h3>
+            <span onclick="closeModal('viewMenuLibraryModal')" style="cursor:pointer;font-size:1.4rem;color:#6b7280;">&times;</span>
+        </div>
+        
+        <div style="background:var(--bg); border-radius:12px; padding:1.5rem; margin-bottom:1.5rem;">
+            <h4 style="font-size:0.85rem; color:#6b7280; text-transform:uppercase; letter-spacing:1px; margin-bottom:1rem; border-bottom:1px solid #e5e7eb; padding-bottom:0.5rem;">Informasi Gizi / Porsi</h4>
+            <table style="width:100%; font-size:0.9rem; border-collapse:collapse;">
+                <tbody id="vmlNutritionBody">
+                    <!-- Injected via JS -->
+                </tbody>
+            </table>
+        </div>
+
+        <div>
+            <h4 style="font-size:0.85rem; color:#6b7280; text-transform:uppercase; letter-spacing:1px; margin-bottom:1rem; border-bottom:1px solid #e5e7eb; padding-bottom:0.5rem;">Komposisi Bahan / Porsi</h4>
+            <table style="width:100%; font-size:0.9rem; border-collapse:collapse;">
+                <thead>
+                    <tr style="text-align:left; color:#9ca3af; font-weight:600; font-size:0.8rem;">
+                        <th style="padding-bottom:0.5rem;">Bahan Baku</th>
+                        <th style="text-align:right; padding-bottom:0.5rem;">Gramasi</th>
+                    </tr>
+                </thead>
+                <tbody id="vmlIngredientsBody">
+                    <!-- Injected via JS -->
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
 
@@ -637,16 +611,59 @@ function openViewScheduleModal(data) {
         { label: 'Protein', val: data.protein, unit: 'g' },
         { label: 'Karbohidrat', val: data.karbohidrat, unit: 'g' },
         { label: 'Lemak', val: data.lemak, unit: 'g' },
+        { label: 'Serat Pangan', val: data.serat, unit: 'g' },
+        { label: 'Kalsium', val: data.kalsium, unit: 'mg' },
+        { label: 'Zat Besi', val: data.besi, unit: 'mg' },
     ];
     let nutHtml = '';
     nutrients.forEach(function(n) {
-        const perPorsi = Math.round(n.val * 10) / 10;
-        const total = Math.round(n.val * data.porsi * 10) / 10;
-        nutHtml += `<tr><td>${n.label}</td><td style="text-align:right;">${perPorsi} ${n.unit}</td><td style="text-align:right;">${total.toLocaleString()} ${n.unit}</td></tr>`;
+        if (n.val > 0) {
+            const perPorsi = Math.round(n.val * 10) / 10;
+            const total = Math.round(n.val * data.porsi * 10) / 10;
+            nutHtml += `<tr><td>${n.label}</td><td style="text-align:right;">${perPorsi} ${n.unit}</td><td style="text-align:right;">${total.toLocaleString()} ${n.unit}</td></tr>`;
+        }
     });
     nutBody.innerHTML = nutHtml;
 
     document.getElementById('viewScheduleModal').classList.add('visible');
+}
+
+function openViewMenuLibraryModal(data) {
+    document.getElementById('vmlName').textContent = data.nama_menu;
+
+    // --- Nutrition Table ---
+    const nutBody = document.getElementById('vmlNutritionBody');
+    const nutrients = [
+        { label: 'Energi', val: data.kalori, unit: 'kcal' },
+        { label: 'Protein', val: data.protein, unit: 'g' },
+        { label: 'Karbohidrat', val: data.karbohidrat, unit: 'g' },
+        { label: 'Lemak', val: data.lemak, unit: 'g' },
+        { label: 'Serat Pangan', val: data.serat, unit: 'g' },
+        { label: 'Kalsium', val: data.kalsium, unit: 'mg' },
+        { label: 'Zat Besi', val: data.besi, unit: 'mg' },
+    ];
+    let nutHtml = '';
+    nutrients.forEach(function(n) {
+        if (n.val > 0) {
+            const perPorsi = Math.round(n.val * 10) / 10;
+            nutHtml += `<tr><td style="padding:0.4rem 0;">${n.label}</td><td style="text-align:right; font-weight:600; color:#111827;">${perPorsi} ${n.unit}</td></tr>`;
+        }
+    });
+    nutBody.innerHTML = nutHtml;
+
+    // --- Ingredients Table ---
+    const ingBody = document.getElementById('vmlIngredientsBody');
+    let ingHtml = '';
+    let totalGram = 0;
+    data.ingredients.forEach(function(ing) {
+        const gram = parseFloat(ing.gram) || 0;
+        totalGram += gram;
+        ingHtml += `<tr><td style="padding:0.4rem 0;">${ing.nama}</td><td style="text-align:right;">${fmtG(gram)}</td></tr>`;
+    });
+    ingHtml += `<tr style="border-top:1px solid #e5e7eb; font-weight:700;"><td style="padding-top:0.6rem; margin-top:0.4rem;">Total Berat per Porsi</td><td style="text-align:right; padding-top:0.6rem;">${fmtG(totalGram)}</td></tr>`;
+    ingBody.innerHTML = ingHtml;
+
+    document.getElementById('viewMenuLibraryModal').classList.add('visible');
 }
 
 function openMenuModal() {

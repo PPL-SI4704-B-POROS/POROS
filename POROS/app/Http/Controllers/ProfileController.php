@@ -21,36 +21,23 @@ class ProfileController extends Controller
         $user = Auth::user();
 
         $request->validate([
-            'nama_lengkap' => ['required', 'string', 'max:255'],
-            'current_password' => [
-                $request->filled('password') ? 'required' : 'nullable', 
-                function ($attribute, $value, $fail) use ($user) {
-                    if ($value && !Hash::check($value, $user->password)) {
-                        $fail('Password saat ini tidak cocok.');
-                    }
-                }
-            ],
-            'password' => ['nullable', 'string', 'min:8', 'confirmed'],
+            'nama_lengkap' => ['nullable', 'string', 'max:255'],
+            'no_telp' => ['nullable', 'string', 'max:20'],
+            'lokasi' => ['nullable', 'string', 'max:255'],
         ]);
 
-        $user->nama_lengkap = $request->nama_lengkap;
-
-        if ($request->filled('password')) {
-            $user->password = Hash::make($request->password);
+        if ($request->filled('nama_lengkap')) {
+            $user->nama_lengkap = $request->nama_lengkap;
+        }
+        if ($request->filled('no_telp')) {
+            $user->no_telp = $request->no_telp;
+        }
+        if ($request->filled('lokasi')) {
+            $user->lokasi = $request->lokasi;
         }
 
         $user->save();
 
-        // Redirect to dashboard based on role
-        $role = $user->role->nama_role;
-        $routeName = 'dashboard.superadmin'; // default
-
-        if ($role == 'dapur') {
-            $routeName = 'dashboard.dapur';
-        } elseif ($role == 'sekolah') {
-            $routeName = 'dashboard.sekolah';
-        }
-
-        return redirect()->route($routeName)->with('success', 'Profil berhasil diperbarui!');
+        return redirect()->route('dashboard.index')->with('success', 'Profil berhasil diperbarui!');
     }
 }

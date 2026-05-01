@@ -39,41 +39,25 @@
                     </h3>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
                         <div class="form-group" style="grid-column: span 2;">
-                            <label class="form-label">Nama Lengkap</label>
-                            <input type="text" name="nama_lengkap" class="form-input" value="{{ old('nama_lengkap', $user->nama_lengkap) }}" required>
-                            @error('nama_lengkap') <div class="error-msg" style="margin-top: 5px; margin-bottom: 0;">{{ $message }}</div> @enderror
+                            <label class="form-label">Role</label>
+                            <div style="padding: 0.75rem 1rem; border-radius: 0.75rem; background: #f3f4f6; color: var(--text-dark); font-weight: 600; display: inline-block;">
+                                {{ ucwords($user->role->nama_role) }}
+                            </div>
                         </div>
                         <div class="form-group" style="grid-column: span 2;">
-                            <label class="form-label">Alamat Email (Tidak dapat diubah)</label>
-                            <input type="email" class="form-input" value="{{ $user->email }}" disabled>
-                            <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.5rem;">Hubungi admin jika Anda ingin mengganti alamat email.</p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Security -->
-                <div>
-                    <h3 style="font-size: 1.1rem; font-weight: 700; color: #0c1e35; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                        Ganti Password
-                    </h3>
-                    <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.5rem;">Isi bagian ini hanya jika Anda ingin memperbarui password akun.</p>
-                    
-                    <div class="form-group">
-                        <label class="form-label">Password Saat Ini</label>
-                        <input type="password" name="current_password" class="form-input" placeholder="Masukkan password lama untuk konfirmasi">
-                        @error('current_password') <div class="error-msg" style="margin-top: 5px; margin-bottom: 0;">{{ $message }}</div> @enderror
-                    </div>
-
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
-                        <div class="form-group">
-                            <label class="form-label">Password Baru</label>
-                            <input type="password" name="password" class="form-input" placeholder="Minimal 8 karakter">
-                            @error('password') <div class="error-msg" style="margin-top: 5px; margin-bottom: 0;">{{ $message }}</div> @enderror
+                            <label class="form-label">Nama Lengkap</label>
+                            <input type="text" name="nama_lengkap" class="form-input" value="{{ old('nama_lengkap', $user->nama_lengkap) }}">
+                            @error('nama_lengkap') <div class="error-msg" style="margin-top: 5px; margin-bottom: 0; color: red; font-size: 0.8rem;">{{ $message }}</div> @enderror
                         </div>
                         <div class="form-group">
-                            <label class="form-label">Konfirmasi Password Baru</label>
-                            <input type="password" name="password_confirmation" class="form-input" placeholder="Ulangi password baru">
+                            <label class="form-label">No. Telepon</label>
+                            <input type="text" name="no_telp" class="form-input" value="{{ old('no_telp', $user->no_telp) }}">
+                            @error('no_telp') <div class="error-msg" style="margin-top: 5px; margin-bottom: 0; color: red; font-size: 0.8rem;">{{ $message }}</div> @enderror
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Lokasi</label>
+                            <input type="text" name="lokasi" class="form-input" value="{{ old('lokasi', $user->lokasi) }}">
+                            @error('lokasi') <div class="error-msg" style="margin-top: 5px; margin-bottom: 0; color: red; font-size: 0.8rem;">{{ $message }}</div> @enderror
                         </div>
                     </div>
                 </div>

@@ -11,13 +11,9 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('suppliers', function (Blueprint $table) {
-            $table->id();
-            $table->string('nama_supplier', 150);
-            $table->string('no_hp', 20);
-            $table->string('gmail', 100);
-            $table->string('alamat', 100);
-            $table->timestamps();
+        Schema::table('siswas', function (Blueprint $table) {
+            $table->string('contact')->nullable();
+            $table->enum('status', ['Active', 'Inactive'])->default('Active');
         });
     }
 
@@ -26,6 +22,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('suppliers');
+        Schema::table('siswas', function (Blueprint $table) {
+            $table->dropColumn(['contact', 'status']);
+        });
     }
 };
