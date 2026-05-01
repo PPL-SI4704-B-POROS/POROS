@@ -10,8 +10,8 @@ return new class extends Migration
     {
         Schema::create('biaya_belanja', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('material_id')
-                    ->constrained('materials')
+            $table->foreignId('bahan_baku_id')
+                    ->constrained('bahan_bakus')
                     ->onDelete('cascade'); 
             
             $table->foreignId('supplier_id')
