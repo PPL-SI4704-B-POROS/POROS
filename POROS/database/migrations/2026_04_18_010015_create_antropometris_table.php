@@ -10,16 +10,29 @@ return new class extends Migration
      * Run the migrations.
      * Tabel ini merekam data pertumbuhan fisik siswa (Tinggi Badan, Berat Badan).
      */
+    // public function up(): void
+    // {
+    //     Schema::create('antropometris', function (Blueprint $table) {
+    //         $table->id();
+    //         $table->decimal('berat_badan', 5, 2);
+    //         $table->decimal('tinggi_badan', 5, 2);
+    //         $table->date('tanggal_ukur');
+    //         $table->foreignId('siswa_id')->constrained('siswas')->onDelete('cascade');
+    //         $table->timestamps();
+    //         $table->softDeletes();
+    //     });
+    // }
     public function up(): void
     {
         Schema::create('antropometris', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('siswa_id')->constrained('siswas')->onDelete('cascade');
             $table->decimal('berat_badan', 5, 2);
             $table->decimal('tinggi_badan', 5, 2);
-            $table->date('tanggal_ukur');
-            $table->foreignId('siswa_id')->constrained('siswas')->onDelete('cascade');
+            $table->float('imt')->nullable(); 
+            $table->string('status_gizi')->nullable();
+            $table->date('tanggal_timbang'); 
             $table->timestamps();
-            $table->softDeletes();
         });
     }
 
