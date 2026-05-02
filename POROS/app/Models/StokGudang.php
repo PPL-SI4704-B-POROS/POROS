@@ -13,6 +13,13 @@ class StokGudang extends Model
         'jumlah_masuk',
         'satuan',
         'tanggal_terima',
-        'keterangan',
+        'supplier_id',
+        'batch_id',
+        'expired_date',
     ];
+
+    public function supplier()
+    {
+        return $this->belongsTo(Supplier::class);
+    }
 }

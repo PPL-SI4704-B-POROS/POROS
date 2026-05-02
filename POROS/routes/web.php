@@ -17,40 +17,70 @@ Route::get('/', function () {
     return redirect()->route('login');
 });
 
+
+
 // ================= LOGIN =================
 Route::get('/login', [AuthController::class, 'login'])->name('login');
-Route::post('/login', [AuthController::class, 'authenticate'])->name('login.post');
-Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
-// ================= STOK =================
-Route::get('/stok', function () {
-    return view('stok');
-});
+Route::post('/login', [AuthController::class, 'authenticate'])
+    ->name('login.post');
 
-Route::post('/stok', [StokController::class, 'store']);
+Route::post('/logout', [AuthController::class, 'logout'])
+    ->name('logout');
+
+
 
 // ================= AUTH =================
 Route::middleware(['auth'])->group(function () {
 
-    // Profile Routes
-    Route::get('/profile/edit', [ProfileController::class, 'edit'])->name('profile.edit');
-    Route::post('/profile/update', [ProfileController::class, 'update'])->name('profile.update');
+    // ================= PROFILE =================
+    Route::get('/profile/edit', [ProfileController::class, 'edit'])
+        ->name('profile.edit');
 
-    // Shared Dashboard
-    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard.index');
+    Route::post('/profile/update', [ProfileController::class, 'update'])
+        ->name('profile.update');
 
-    // ================= SUPER ADMIN =================
+
+
+    // ================= DASHBOARD =================
+    Route::get('/dashboard', [DashboardController::class, 'index'])
+        ->name('dashboard.index');
+
+
+
+    // =========================================================
+    // SUPER ADMIN
+    // =========================================================
     Route::middleware(['role:super admin'])->group(function () {
 
-        Route::get('/dashboard/superadmin/users', [UserController::class, 'index'])->name('users.index');
-        Route::post('/dashboard/superadmin/users', [UserController::class, 'store'])->name('users.store');
-        Route::put('/dashboard/superadmin/users/{user}', [UserController::class, 'update'])->name('users.update');
-        Route::delete('/dashboard/superadmin/users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
+        // USERS
+        Route::get('/dashboard/superadmin/users', [UserController::class, 'index'])
+            ->name('users.index');
 
-        Route::post('/dashboard/superadmin/siswas', [UserController::class, 'storeSiswa'])->name('siswas.store');
-        Route::put('/dashboard/superadmin/siswas/{siswa}', [UserController::class, 'updateSiswa'])->name('siswas.update');
-        Route::delete('/dashboard/superadmin/siswas/{siswa}', [UserController::class, 'destroySiswa'])->name('siswas.destroy');
+        Route::post('/dashboard/superadmin/users', [UserController::class, 'store'])
+            ->name('users.store');
 
+        Route::put('/dashboard/superadmin/users/{user}', [UserController::class, 'update'])
+            ->name('users.update');
+
+        Route::delete('/dashboard/superadmin/users/{user}', [UserController::class, 'destroy'])
+            ->name('users.destroy');
+
+
+
+        // SISWA
+        Route::post('/dashboard/superadmin/siswas', [UserController::class, 'storeSiswa'])
+            ->name('siswas.store');
+
+        Route::put('/dashboard/superadmin/siswas/{siswa}', [UserController::class, 'updateSiswa'])
+            ->name('siswas.update');
+
+        Route::delete('/dashboard/superadmin/siswas/{siswa}', [UserController::class, 'destroySiswa'])
+            ->name('siswas.destroy');
+
+
+
+        // PAGES
         Route::get('/dashboard/superadmin/suppliers', function () {
             return view('dashboards.superadmin.suppliers');
         })->name('suppliers.index');
@@ -65,40 +95,103 @@ Route::middleware(['auth'])->group(function () {
 
     });
 
-    // ================= DAPUR =================
+
+
+
+
+    // =========================================================
+    // DAPUR
+    // =========================================================
     Route::middleware(['role:dapur'])->group(function () {
 
-        Route::get('/dashboard/dapur/meal-planning', [MenuController::class, 'index'])->name('dashboard.meal_planning');
+        // ================= MEAL PLANNING =================
+        Route::get('/dashboard/dapur/meal-planning', [MenuController::class, 'index'])
+            ->name('dashboard.meal_planning');
 
-        Route::post('/dashboard/schedule', [ProduksiHarianController::class, 'store'])->name('schedule.store');
-        Route::put('/dashboard/schedule/{id}', [ProduksiHarianController::class, 'update'])->name('schedule.update');
-        Route::delete('/dashboard/schedule/{id}', [ProduksiHarianController::class, 'destroy'])->name('schedule.destroy');
 
-        // Inventory
-        Route::get('/dashboard/dapur/inventory', [BahanBakusController::class, 'index'])->name('inventory.index');
 
-        // CRUD Bahan Baku
-        Route::post('/bahan-bakus', [BahanBakusController::class, 'store'])->name('bahan-bakus.store');
-        Route::put('/bahan-bakus/{id}', [BahanBakusController::class, 'update'])->name('bahan-bakus.update');
-        Route::get('/bahan-bakus/{id}/edit', [BahanBakusController::class, 'edit'])->name('bahan-bakus.edit');
-        Route::delete('/bahan-bakus/{id}', [BahanBakusController::class, 'destroy'])->name('bahan-bakus.destroy');
+        // ================= PRODUKSI =================
+        Route::post('/dashboard/schedule', [ProduksiHarianController::class, 'store'])
+            ->name('schedule.store');
 
-        // CRUD Suppliers
-        Route::get('/suppliers', [SuppliersController::class, 'index'])->name('suppliers.index');
-        Route::post('/suppliers', [SuppliersController::class, 'store'])->name('suppliers.store');
-        Route::put('/suppliers/{id}', [SuppliersController::class, 'update'])->name('suppliers.update');
-        Route::get('/suppliers/{id}/edit', [SuppliersController::class, 'edit'])->name('suppliers.edit');
-        Route::delete('/suppliers/{id}', [SuppliersController::class, 'destroy'])->name('suppliers.destroy');
+        Route::put('/dashboard/schedule/{id}', [ProduksiHarianController::class, 'update'])
+            ->name('schedule.update');
 
-        Route::resource('menu', MenuController::class)->except(['index']);
+        Route::delete('/dashboard/schedule/{id}', [ProduksiHarianController::class, 'destroy'])
+            ->name('schedule.destroy');
 
-        Route::get('/dashboard/dapur/deliveries', function () {
-            return view('dashboards.dapur.deliveries');
-        })->name('deliveries.index');
+
+
+        // ================= INVENTORY =================
+        Route::get('/dashboard/dapur/inventory', [BahanBakusController::class, 'index'])
+            ->name('inventory.index');
+
+
+
+        // ================= DELIVERIES =================
+        Route::get('/dashboard/dapur/deliveries', [StokController::class, 'index'])
+            ->name('deliveries.index');
+
+
+
+        // ================= STOCK CRUD =================
+        Route::post('/stocks', [StokController::class, 'store'])
+            ->name('stocks.store');
+
+        Route::put('/dashboard/dapur/deliveries/{id}', [StokController::class, 'update'])
+            ->name('deliveries.update');
+
+        Route::delete('/dashboard/dapur/deliveries/{id}', [StokController::class, 'destroy'])
+            ->name('deliveries.destroy');
+
+
+
+        // ================= CRUD BAHAN BAKU =================
+        Route::post('/bahan-bakus', [BahanBakusController::class, 'store'])
+            ->name('bahan-bakus.store');
+
+        Route::put('/bahan-bakus/{id}', [BahanBakusController::class, 'update'])
+            ->name('bahan-bakus.update');
+
+        Route::get('/bahan-bakus/{id}/edit', [BahanBakusController::class, 'edit'])
+            ->name('bahan-bakus.edit');
+
+        Route::delete('/bahan-bakus/{id}', [BahanBakusController::class, 'destroy'])
+            ->name('bahan-bakus.destroy');
+
+
+
+        // ================= CRUD SUPPLIERS =================
+        Route::get('/suppliers', [SuppliersController::class, 'index'])
+            ->name('suppliers.index');
+
+        Route::post('/suppliers', [SuppliersController::class, 'store'])
+            ->name('suppliers.store');
+
+        Route::put('/suppliers/{id}', [SuppliersController::class, 'update'])
+            ->name('suppliers.update');
+
+        Route::get('/suppliers/{id}/edit', [SuppliersController::class, 'edit'])
+            ->name('suppliers.edit');
+
+        Route::delete('/suppliers/{id}', [SuppliersController::class, 'destroy'])
+            ->name('suppliers.destroy');
+
+
+
+        // ================= MENU =================
+        Route::resource('menu', MenuController::class)
+            ->except(['index']);
 
     });
 
-    // ================= SEKOLAH =================
+
+
+
+
+    // =========================================================
+    // SEKOLAH
+    // =========================================================
     Route::middleware(['role:sekolah'])->group(function () {
 
         Route::get('/dashboard/sekolah/monitoring', function () {
