@@ -16,6 +16,10 @@ class ProduksiHarian extends Model
         'menu_id',
     ];
 
+    protected $casts = [
+        'tanggal_produksi' => 'date',
+    ];
+
     public function menu()
     {
         return $this->belongsTo(Menu::class);

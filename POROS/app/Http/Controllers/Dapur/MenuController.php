@@ -27,9 +27,9 @@ class MenuController extends Controller
         $endOfWeek = $startOfWeek->copy()->endOfWeek();
         
         $schedules = ProduksiHarian::with('menu.reseps.bahanBaku')
-            ->whereBetween('tanggal_produksi', [$startOfWeek, $endOfWeek])
+            ->whereBetween('tanggal_produksi', [$startOfWeek->toDateString(), $endOfWeek->toDateString()])
             ->get()
-            ->groupBy('tanggal_produksi');
+            ->groupBy(fn($item) => $item->tanggal_produksi->format('Y-m-d'));
 
         return view('dashboards.dapur.meal-planning', compact('menus', 'bahanBakus', 'schedules', 'startOfWeek', 'weekOffset'));
     }

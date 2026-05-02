@@ -295,6 +295,40 @@ php artisan serve
 
 ---
 
+## 7. Menjalankan E2E Testing (Laravel Dusk)
+
+Ikuti langkah ini untuk menjalankan pengujian otomatis secara aman di database lokal:
+
+1. **Siapkan Database Testing** (Hanya satu kali):
+   Pastikan file database kosong ada di folder database:
+   ```powershell
+   touch database/testing.sqlite
+   ```
+
+2. **Update ChromeDriver** (Jika Chrome baru saja update):
+   ```bash
+   php artisan dusk:chrome-driver
+   ```
+
+3. **Jalankan Server Testing** (Buka di terminal terpisah):
+   Server harus berjalan di port yang sama dengan `APP_URL` di `.env.dusk.local` (Default: 8001):
+   ```bash
+   php artisan serve --port=8001 --env=dusk.local
+   ```
+   *Catatan: Jika Anda menggunakan port lain (misal 8081), pastikan APP_URL di .env.dusk.local juga diubah.*
+
+4. **Jalankan Pengujian**:
+   Buka terminal baru, lalu pilih salah satu perintah:
+   ```bash
+   # Jalankan SEMUA test
+   php artisan dusk
+
+   # Jalankan test per fitur (contoh: Meal Planning)
+   php artisan dusk tests/Browser/Dapur/MealPlanning/MealPlanningTest.php
+   ```
+
+---
+
 ## 8. Catatan Penting untuk AI Prompting
 
 1. **Bahasa**: Kode menggunakan campuran Bahasa Indonesia (nama field DB, teks UI) dan Bahasa Inggris (nama class, method, CSS class)
@@ -309,3 +343,5 @@ php artisan serve
 10. **Pagination** — Diatur menggunakan `Paginator::useBootstrapFive()` di `AppServiceProvider` agar layout HTML mudah di-*style* dengan Vanilla CSS tanpa bentrok dengan struktur Tailwind default.
 11. **Arsitektur Antropometri & Alergi** — `antropometris` DIBIARKAN terpisah dari `siswas` untuk *historical tracking* (mencegah stunting/chart pertumbuhan). Data Alergi diinput oleh Petugas Sekolah karena mereka berinteraksi langsung dengan siswa; Dapur hanya bersifat *viewer*.
 12. **UI Conditional Rendering (Nol)** — Pada pop-up / modal, nilai nutrisi yang bernilai 0 tidak di-render (di-filter via JS) untuk menjaga UI tetap bersih.
+13. **E2E Testing (Laravel Dusk)** — Framework pengujian otomatis menggunakan Laravel Dusk + Pest. Database testing menggunakan **SQLite** (`database/testing.sqlite`) via `.env.dusk.local`. Struktur folder: `tests/Browser/{Role}/{Feature}`. Gunakan `DatabaseMigrations` trait untuk memastikan state database bersih.
+14. **Cross-Database Compatibility** — Seeder dan query harus mendukung PostgreSQL (Prod) dan SQLite (Test). Gunakan `DB::getDriverName() === 'pgsql' ? 'ilike' : 'like'` untuk pencarian string case-insensitive.
