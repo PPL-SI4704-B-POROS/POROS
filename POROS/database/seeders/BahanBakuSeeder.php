@@ -19,7 +19,7 @@ class BahanBakuSeeder extends Seeder
         // Helper function to find a katalog pangan
         $findKatalogId = function($keyword) {
             if (!$keyword) return null;
-            $kp = DB::table('katalog_pangans')->where('nama_pangan', 'like', "%{$keyword}%")->first();
+            $kp = DB::table('katalog_pangans')->where('nama_pangan', 'ilike', "%{$keyword}%")->first();
             return $kp ? $kp->id : null;
         };
 
@@ -136,5 +136,37 @@ class BahanBakuSeeder extends Seeder
         }
 
         DB::table('bahan_bakus')->insert($bahanBakus);
+
+        // Tambahkan semua Katalog Pangan sisanya ke dalam Bahan Baku
+        $usedKatalogIds = array_filter(array_column($bahanBakus, 'katalog_pangan_id'));
+
+        $remainingKatalogs = DB::table('katalog_pangans')
+            ->whereNotIn('id', $usedKatalogIds)
+            ->get();
+
+        $additionalBahanBakus = [];
+        $chunkSize = 500;
+        
+        foreach ($remainingKatalogs as $kp) {
+            $additionalBahanBakus[] = [
+                'nama_bahan' => $kp->nama_pangan,
+                'stok' => rand(3000, 10000),
+                'stok_minimal' => 1500,
+                'satuan' => 'gram',
+                'katalog_pangan_id' => $kp->id,
+                'supplier_id' => $suppliers[0] ?? 1,
+                'created_at' => now(),
+                'updated_at' => now()
+            ];
+
+            if (count($additionalBahanBakus) >= $chunkSize) {
+                DB::table('bahan_bakus')->insert($additionalBahanBakus);
+                $additionalBahanBakus = [];
+            }
+        }
+
+        if (count($additionalBahanBakus) > 0) {
+            DB::table('bahan_bakus')->insert($additionalBahanBakus);
+        }
     }
 }
