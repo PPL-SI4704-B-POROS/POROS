@@ -108,11 +108,16 @@ sekolahs ──< laporan_masalahs
 #### `suppliers`
 - `id`, `nama_supplier`, `alamat`, `kontak`, timestamps, softDeletes
 
-#### `bahan_bakus` (Bahan Baku / Raw Ingredients)
-- `id`, `nama_bahan`, `satuan`, `stok` (dalam gram), `stok_minimal`, `supplier_id` (FK)
-- `energi_per_100g`, `protein_per_100g`, `karbohidrat_per_100g`, `lemak_per_100g`
-- Data nutrisi bersumber dari **TKPI (Tabel Komposisi Pangan Indonesia)**
-- Memiliki accessors: `energi_per_gram`, `protein_per_gram`, dll.
+#### `katalog_pangans` (Master Data TKPI)
+- `id`, `kode_bahan`, `nama_bahan`, `sumber_data`
+- `energi_per_100g`, `protein_per_100g`, `karbohidrat_per_100g`, `lemak_per_100g`, `serat_per_100g`, `kalsium_per_100g`, `besi_per_100g`
+- Berisi 1.066 bahan makanan standar Indonesia.
+- timestamps, softDeletes
+
+#### `bahan_bakus` (Bahan Baku / Raw Ingredients Inventory)
+- `id`, `nama_bahan`, `satuan`, `stok` (dalam gram), `stok_minimal`, `supplier_id` (FK), `katalog_pangan_id` (FK)
+- **Logika Gizi**: Data nutrisi tidak lagi di-hardcode di tabel ini, melainkan direferensikan dari tabel `katalog_pangans`.
+- Memiliki accessors: `energi_per_gram`, `protein_per_gram`, `serat_per_gram`, `kalsium_per_gram`, `besi_per_gram`, dll.
 - timestamps, softDeletes
 
 #### `menus`
@@ -176,14 +181,15 @@ sekolahs ──< laporan_masalahs
 - View Student memunculkan modal yang juga meload **Data Fisik (Terbaru)** dari relasi `antropometris`.
 - Menggunakan Bootstrap 5 Pagination Custom Styles (Tailwind default di-override via AppServiceProvider).
 
-### ✅ Meal Planning (Dapur)
-- Kalender menu mingguan dengan navigasi antar minggu
-- Add/Edit/Delete menu schedule per hari
-- Menu Library: Create, Edit, Delete menu
-- Kalkulasi nutrisi otomatis dari TKPI (energi, protein, karbo, lemak)
-- Searchable dropdown untuk pemilihan bahan baku
-- View detail jadwal (kebutuhan bahan & info gizi)
-- Portion preview (total berat berdasarkan jumlah porsi)
+### ✅ Meal Planning & TKPI Integration (Dapur)
+- Integrasi Penuh **Tabel Komposisi Pangan Indonesia (TKPI)**: 1.066 data master pangan lokal.
+- Kalender menu mingguan dengan navigasi antar minggu.
+- Add/Edit/Delete menu schedule per hari.
+- Menu Library dengan **26 pre-built dynamic menus**.
+- Kalkulasi nutrisi makro & mikro otomatis (Energi, Protein, Karbo, Lemak, Serat, Kalsium, Zat Besi).
+- Searchable dropdown untuk pemilihan bahan baku.
+- **Smart View Modal**: Menampilkan detail jadwal (kebutuhan bahan & info gizi) dengan logika *conditional rendering* (hanya menampilkan gizi yang nilainya > 0).
+- Portion preview (total berat berdasarkan jumlah porsi).
 
 ### ✅ School Monitoring (Sekolah)
 - Placeholder page (dalam pengembangan)
@@ -248,12 +254,14 @@ sekolahs ──< laporan_masalahs
 ### Database Seeders (Run Order)
 1. `RoleSeeder` — 3 roles
 2. `SekolahSeeder` — sample schools
-3. `SupplierSeeder` — sample suppliers
-4. `BahanBakuSeeder` — 34 bahan baku dengan data nutrisi TKPI
+3. `SiswaSeeder` — sample students
+4. `AntropometriSeeder` — sample anthropometric data
 5. `UserSeeder` — 3 default users (1 per role)
-6. `SiswaSeeder` — sample students
-7. `WasteSeeder` — sample plate waste data
-8. `AntropometriSeeder` — sample anthropometric data
+6. `SupplierSeeder` — sample suppliers
+7. `KatalogPanganSeeder` — import 1.066 data gizi dari CSV lokal TKPI
+8. `BahanBakuSeeder` — 70+ bahan baku inventaris yang di-mapping ke Katalog Pangan
+9. `MenuSeeder` — generate 26 menu dan otomatis meracik 100+ resep
+10. `WasteSeeder` — sample plate waste data
 
 ---
 
@@ -291,7 +299,7 @@ php artisan serve
 
 1. **Bahasa**: Kode menggunakan campuran Bahasa Indonesia (nama field DB, teks UI) dan Bahasa Inggris (nama class, method, CSS class)
 2. **Semua model menggunakan SoftDeletes** — jangan lupa `softDeletes()` di migration dan `use SoftDeletes` di model
-3. **Nutrisi dihitung per 100g** — kolom `energi_per_100g`, `protein_per_100g`, dll. Kalkulasi: `value_per_100g × (gramasi / 100)`
+3. **Nutrisi dihitung per 100g** — Nilai gizi asli berada di tabel `katalog_pangans`. Model `BahanBaku` menggunakan **Accessor** (`getEnergiPerGramAttribute`) untuk membagi nilainya menjadi per gram. Kalkulasi akhir: `value_per_gram × gramasi_per_porsi`.
 4. **Session driver = database** — tabel `sessions` harus ada
 5. **CSS inline di blade** — saat ini beberapa blade file masih memiliki `<style>` inline (sedang dalam proses refactor untuk dipisahkan ke file CSS terpisah)
 6. **Chart.js via CDN** — `https://cdn.jsdelivr.net/npm/chart.js`, diload di halaman yang membutuhkan chart
@@ -300,3 +308,4 @@ php artisan serve
 9. **Stok dalam gram** — field `stok` dan `stok_minimal` di `bahan_bakus` menggunakan satuan gram. Display: >= 1000g ditampilkan sebagai kg
 10. **Pagination** — Diatur menggunakan `Paginator::useBootstrapFive()` di `AppServiceProvider` agar layout HTML mudah di-*style* dengan Vanilla CSS tanpa bentrok dengan struktur Tailwind default.
 11. **Arsitektur Antropometri & Alergi** — `antropometris` DIBIARKAN terpisah dari `siswas` untuk *historical tracking* (mencegah stunting/chart pertumbuhan). Data Alergi diinput oleh Petugas Sekolah karena mereka berinteraksi langsung dengan siswa; Dapur hanya bersifat *viewer*.
+12. **UI Conditional Rendering (Nol)** — Pada pop-up / modal, nilai nutrisi yang bernilai 0 tidak di-render (di-filter via JS) untuk menjaga UI tetap bersih.

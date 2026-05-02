@@ -31,8 +31,9 @@ return new class extends Migration
             $table->decimal('tinggi_badan', 5, 2);
             $table->float('imt')->nullable(); 
             $table->string('status_gizi')->nullable();
-            $table->date('tanggal_timbang'); 
+            $table->date('tanggal_ukur'); 
             $table->timestamps();
+            $table->softDeletes();
         });
     }
 

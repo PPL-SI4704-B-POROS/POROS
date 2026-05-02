@@ -19,7 +19,7 @@ class MenuSeeder extends Seeder
 
         // Helper to find BahanBaku id by name
         $findBahanId = function($keyword) {
-            $bahan = BahanBaku::where('nama_bahan', 'like', "%{$keyword}%")->first();
+            $bahan = BahanBaku::where('nama_bahan', 'ilike', "%{$keyword}%")->first();
             return $bahan ? $bahan->id : null;
         };
 
@@ -212,7 +212,7 @@ class MenuSeeder extends Seeder
             $resepsToInsert = [];
 
             foreach ($ingredients as $bahanName => $gramasi) {
-                $bahan = BahanBaku::where('nama_bahan', 'like', "%{$bahanName}%")->first();
+                $bahan = BahanBaku::where('nama_bahan', 'ilike', "%{$bahanName}%")->first();
                 if ($bahan) {
                     $resepsToInsert[] = [
                         'bahan_id' => $bahan->id,
