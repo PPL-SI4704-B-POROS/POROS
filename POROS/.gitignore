@@ -18,3 +18,9 @@ yarn-error.log
 /.vscode
 *.sqlite
 find_katalog.php
+.env.dusk.local
+phpunit.dusk.xml
+/tests/Browser/screenshots/*
+!/tests/Browser/screenshots/.gitignore
+/tests/Browser/console/*
+!/tests/Browser/console/.gitignore

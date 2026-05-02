@@ -18,8 +18,9 @@ class MenuSeeder extends Seeder
         \Illuminate\Support\Facades\Schema::enableForeignKeyConstraints();
 
         // Helper to find BahanBaku id by name
-        $findBahanId = function($keyword) {
-            $bahan = BahanBaku::where('nama_bahan', 'ilike', "%{$keyword}%")->first();
+        $like = DB::getDriverName() === 'pgsql' ? 'ilike' : 'like';
+        $findBahanId = function($keyword) use ($like) {
+            $bahan = BahanBaku::where('nama_bahan', $like, "%{$keyword}%")->first();
             return $bahan ? $bahan->id : null;
         };
 
@@ -212,7 +213,7 @@ class MenuSeeder extends Seeder
             $resepsToInsert = [];
 
             foreach ($ingredients as $bahanName => $gramasi) {
-                $bahan = BahanBaku::where('nama_bahan', 'ilike', "%{$bahanName}%")->first();
+                $bahan = BahanBaku::where('nama_bahan', $like, "%{$bahanName}%")->first();
                 if ($bahan) {
                     $resepsToInsert[] = [
                         'bahan_id' => $bahan->id,

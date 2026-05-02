@@ -17,9 +17,10 @@ class BahanBakuSeeder extends Seeder
         Schema::enableForeignKeyConstraints();
 
         // Helper function to find a katalog pangan
-        $findKatalogId = function($keyword) {
+        $like = DB::getDriverName() === 'pgsql' ? 'ilike' : 'like';
+        $findKatalogId = function($keyword) use ($like) {
             if (!$keyword) return null;
-            $kp = DB::table('katalog_pangans')->where('nama_pangan', 'ilike', "%{$keyword}%")->first();
+            $kp = DB::table('katalog_pangans')->where('nama_pangan', $like, "%{$keyword}%")->first();
             return $kp ? $kp->id : null;
         };
 
