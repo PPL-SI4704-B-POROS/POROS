@@ -65,7 +65,7 @@
                         </div>
                         @empty
                         <div style="padding:24px; text-align:center; color:#94a3b8; font-size:13px;">
-                            Belum ada pengumuman
+                            Belum ada pengumuman yang dibuat.
                         </div>
                         @endforelse
                     </div>
