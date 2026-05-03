@@ -100,11 +100,16 @@ Route::middleware(['auth'])->group(function () {
 
     // ================= SEKOLAH =================
     Route::middleware(['role:sekolah'])->group(function () {
-
         Route::get('/dashboard/sekolah/monitoring', function () {
             return view('dashboards.sekolah.monitoring');
         })->name('dashboard.sekolah.monitoring');
 
+        // Siswa Management
+        Route::get('/dashboard/sekolah/siswas', [\App\Http\Controllers\Sekolah\SiswaController::class, 'index'])->name('sekolah.siswas.index');
+        Route::post('/dashboard/sekolah/siswas', [\App\Http\Controllers\Sekolah\SiswaController::class, 'store'])->name('sekolah.siswas.store');
+        Route::put('/dashboard/sekolah/siswas/{siswa}', [\App\Http\Controllers\Sekolah\SiswaController::class, 'update'])->name('sekolah.siswas.update');
+        Route::delete('/dashboard/sekolah/siswas/{siswa}', [\App\Http\Controllers\Sekolah\SiswaController::class, 'destroy'])->name('sekolah.siswas.destroy');
+        Route::post('/dashboard/sekolah/siswas/{id}/antropometri', [\App\Http\Controllers\Sekolah\SiswaController::class, 'storeAntropometri'])->name('sekolah.siswas.antropometri.store');
     });
 
 });

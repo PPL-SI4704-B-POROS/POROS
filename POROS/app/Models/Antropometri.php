@@ -12,6 +12,8 @@ class Antropometri extends Model
     protected $fillable = [
         'berat_badan',
         'tinggi_badan',
+        'imt',
+        'status_gizi',
         'tanggal_ukur',
         'siswa_id',
     ];
