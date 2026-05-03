@@ -18,6 +18,13 @@ return new class extends Migration
 
     public function down(): void
     {
+        // Guard: tabel mungkin sudah di-drop oleh migration yang lebih baru (062633)
+        if (!Schema::hasTable('stok_gudang')) {
+            return;
+        }
+        if (!Schema::hasColumn('stok_gudang', 'bahan_baku_id')) {
+            return;
+        }
         Schema::table('stok_gudang', function (Blueprint $table) {
             $table->dropForeign(['bahan_baku_id']);
             $table->dropColumn('bahan_baku_id');
