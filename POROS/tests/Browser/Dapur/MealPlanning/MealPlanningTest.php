@@ -1,153 +1,172 @@
 <?php
 
-use Laravel\Dusk\Browser;
-use App\Models\User;
+namespace Tests\Browser\Dapur\MealPlanning;
+
 use App\Models\Menu;
-use App\Models\BahanBaku;
-use Illuminate\Support\Facades\DB;
+use App\Models\User;
 use Illuminate\Foundation\Testing\DatabaseMigrations;
+use Laravel\Dusk\Browser;
+use PHPUnit\Framework\Attributes\Test;
+use Tests\DuskTestCase;
 
-uses(DatabaseMigrations::class);
+class MealPlanningTest extends DuskTestCase
+{
+    use DatabaseMigrations;
 
-beforeEach(function () {
-    $this->artisan('db:seed');
-});
 
-/**
- * A. Skenario Akses & Otorisasi
- */
-test('test_guest_redirect', function () {
-    $this->browse(function (Browser $browser) {
-        $browser->visit('/dashboard/dapur/meal-planning')
-                ->assertPathIs('/login');
-    });
-});
+    protected function setUp(): void
+    {
+        parent::setUp();
 
-test('test_admin_access', function () {
-    $this->browse(function (Browser $browser) {
-        $user = User::where('email', 'dapur@poros.com')->first();
-        $browser->loginAs($user)
-                ->visit('/dashboard/dapur/meal-planning')
-                ->assertSee('Meal Planning')
-                ->assertSee('Kalender Menu Mingguan');
-    });
-});
+        $this->artisan('db:seed');
+    }
 
-/**
- * B. Skenario Navigasi Kalender
- */
-test('test_calendar_nav', function () {
-    $this->browse(function (Browser $browser) {
-        $user = User::where('email', 'dapur@poros.com')->first();
-        $browser->loginAs($user)
-                ->visit('/dashboard/dapur/meal-planning');
+    /**
+     * A. Skenario Akses & Otorisasi
+     */
+    #[Test]
+    public function test_guest_redirect(): void
+    {
+        $this->browse(function (Browser $browser) {
+            $browser->visit('/dashboard/dapur/meal-planning')
+                    ->assertPathIs('/login');
+        });
+    }
 
-        $initialDate = $browser->text('.week-grid .day-card:first-child .day-date');
-        
-        $browser->clickLink('→')
-                ->pause(1000);
-        
-        $nextDate = $browser->text('.week-grid .day-card:first-child .day-date');
-        expect($nextDate)->not->toBe($initialDate);
+    #[Test]
+    public function test_admin_access(): void
+    {
+        $this->browse(function (Browser $browser) {
+            $user = User::where('email', 'dapur@poros.com')->first();
 
-        $browser->clickLink('←')
-                ->pause(1000);
-        
-        $prevDate = $browser->text('.week-grid .day-card:first-child .day-date');
-        expect($prevDate)->toBe($initialDate);
-    });
-});
+            $browser->loginAs($user)
+                    ->visit('/dashboard/dapur/meal-planning')
+                    ->assertSee('Meal Planning')
+                    ->assertSee('Kalender Menu Mingguan');
+        });
+    }
 
-/**
- * C. Skenario Pembuatan Jadwal (Create)
- */
-test('test_add_schedule_success', function () {
-    $this->browse(function (Browser $browser) {
-        $user = User::where('email', 'dapur@poros.com')->first();
-        $menu = Menu::first();
+    /**
+     * B. Skenario Navigasi Kalender
+     */
+    #[Test]
+    public function test_calendar_nav(): void
+    {
+        $this->browse(function (Browser $browser) {
+            $user = User::where('email', 'dapur@poros.com')->first();
 
-        $browser->loginAs($user)
-                ->visit('/dashboard/dapur/meal-planning')
-                ->click('.add-menu-link') // Klik tombol tambah di hari pertama
-                ->pause(500)
-                ->select('menu_id', $menu->id)
-                ->type('#schedulePortionInput', '150')
-                ->press('Jadwalkan')
-                ->pause(1000)
-                ->assertSee($menu->nama_menu)
-                ->assertSee('150 porsi');
-    });
-});
+            $browser->loginAs($user)
+                    ->visit('/dashboard/dapur/meal-planning');
 
-test('test_add_invalid_portion', function () {
-    $this->browse(function (Browser $browser) {
-        $user = User::where('email', 'dapur@poros.com')->first();
-        $menu = Menu::first();
+            $initialDate = $browser->text('.week-grid .day-card:first-child .day-date');
 
-        $browser->loginAs($user)
-                ->visit('/dashboard/dapur/meal-planning')
-                ->click('.add-menu-link')
-                ->pause(500)
-                ->select('menu_id', $menu->id)
-                ->type('#schedulePortionInput', '-10')
-                ->press('Jadwalkan')
-                ->pause(500)
-                // Karena validasi menggunakan atribut HTML 'min="1"', 
-                // form tidak akan terkirim. Kita bisa cek apakah modal masih terbuka.
-                ->assertVisible('#scheduleModal');
-    });
-});
+            $browser->click('a[href*="week=1"]')
+                    ->waitFor('.week-grid');
 
-/**
- * D. Skenario Edit Jadwal (Update)
- */
-test('test_edit_portion', function () {
-    $this->browse(function (Browser $browser) {
-        $user = User::where('email', 'dapur@poros.com')->first();
-        $menu = Menu::first();
+            $nextDate = $browser->text('.week-grid .day-card:first-child .day-date');
+            $this->assertNotEquals($initialDate, $nextDate);
 
-        // Setup awal: buat jadwal dulu
-        $browser->loginAs($user)
-                ->visit('/dashboard/dapur/meal-planning')
-                ->click('.add-menu-link')
-                ->pause(500)
-                ->select('menu_id', $menu->id)
-                ->type('#schedulePortionInput', '100')
-                ->press('Jadwalkan')
-                ->pause(1000);
+            $browser->click('a[href*="week=0"]')
+                    ->waitFor('.week-grid');
 
-        // Aksi Edit
-        $browser->click('.btn-edit')
-                ->pause(500)
-                ->type('#editPortionInput', '250')
-                ->press('Simpan Perubahan')
-                ->pause(1000)
-                ->assertSee('250 porsi');
-    });
-});
+            $prevDate = $browser->text('.week-grid .day-card:first-child .day-date');
+            $this->assertEquals($initialDate, $prevDate);
+        });
+    }
 
-/**
- * E. Skenario Hapus Jadwal (Delete)
- */
-test('test_delete_success', function () {
-    $this->browse(function (Browser $browser) {
-        $user = User::where('email', 'dapur@poros.com')->first();
-        $menu = Menu::first();
+    /**
+     * C. Skenario Pembuatan Jadwal (Create)
+     */
+    #[Test]
+    public function test_add_schedule_success(): void
+    {
+        $this->browse(function (Browser $browser) {
+            $user = User::where('email', 'dapur@poros.com')->first();
+            $menu = Menu::first();
 
-        // Setup awal: buat jadwal
-        $browser->loginAs($user)
-                ->visit('/dashboard/dapur/meal-planning')
-                ->click('.add-menu-link')
-                ->pause(500)
-                ->select('menu_id', $menu->id)
-                ->type('total_target_porsi', '100')
-                ->press('Jadwalkan')
-                ->pause(1000);
+            $browser->loginAs($user)
+                    ->visit('/dashboard/dapur/meal-planning')
+                    ->click('.add-menu-link')
+                    ->waitFor('#scheduleModal')
+                    ->select('menu_id', $menu->id)
+                    ->type('#schedulePortionInput', '150')
+                    ->press('Jadwalkan')
+                    ->waitUntilMissing('#scheduleModal')
+                    ->assertSee($menu->nama_menu)
+                    ->assertSee('150 porsi');
+        });
+    }
 
-        // Aksi Hapus
-        $browser->click('.btn-del')
-                ->acceptDialog() // Menangani confirm('Hapus jadwal ini?')
-                ->pause(1000)
-                ->assertDontSee('100 porsi');
-    });
-});
+    #[Test]
+    public function test_add_invalid_portion(): void
+    {
+        $this->browse(function (Browser $browser) {
+            $user = User::where('email', 'dapur@poros.com')->first();
+            $menu = Menu::first();
+
+            $browser->loginAs($user)
+                    ->visit('/dashboard/dapur/meal-planning')
+                    ->click('.add-menu-link')
+                    ->waitFor('#scheduleModal')
+                    ->select('menu_id', $menu->id)
+                    ->type('#schedulePortionInput', '-10')
+                    ->press('Jadwalkan')
+                    ->pause(500)
+                    ->assertVisible('#scheduleModal');
+        });
+    }
+
+    /**
+     * D. Skenario Edit Jadwal (Update)
+     */
+    #[Test]
+    public function test_edit_portion(): void
+    {
+        $this->browse(function (Browser $browser) {
+            $user = User::where('email', 'dapur@poros.com')->first();
+            $menu = Menu::first();
+
+            $browser->loginAs($user)
+                    ->visit('/dashboard/dapur/meal-planning')
+                    ->click('.add-menu-link')
+                    ->waitFor('#scheduleModal')
+                    ->select('menu_id', $menu->id)
+                    ->type('#schedulePortionInput', '100')
+                    ->press('Jadwalkan')
+                    ->waitUntilMissing('#scheduleModal');
+
+            $browser->click('.btn-edit')
+                    ->waitFor('#editModal')
+                    ->type('#editPortionInput', '250')
+                    ->press('Simpan Perubahan')
+                    ->waitUntilMissing('#editModal')
+                    ->assertSee('250 porsi');
+        });
+    }
+
+    /**
+     * E. Skenario Hapus Jadwal (Delete)
+     */
+    #[Test]
+    public function test_delete_success(): void
+    {
+        $this->browse(function (Browser $browser) {
+            $user = User::where('email', 'dapur@poros.com')->first();
+            $menu = Menu::first();
+
+            $browser->loginAs($user)
+                    ->visit('/dashboard/dapur/meal-planning')
+                    ->click('.add-menu-link')
+                    ->waitFor('#scheduleModal')
+                    ->select('menu_id', $menu->id)
+                    ->type('total_target_porsi', '100')
+                    ->press('Jadwalkan')
+                    ->waitUntilMissing('#scheduleModal');
+
+            $browser->click('.btn-del')
+                    ->acceptDialog()
+                    ->waitForReload()
+                    ->assertDontSee('100 porsi');
+        });
+    }
+}
