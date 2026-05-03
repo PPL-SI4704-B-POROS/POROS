@@ -8,6 +8,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\StokController;
 
 use App\Http\Controllers\SuperAdmin\UserController;
+use App\Http\Controllers\SuperAdmin\PengumumanController;
 use App\Http\Controllers\Dapur\MenuController;
 use App\Http\Controllers\Dapur\ProduksiHarianController;
 use App\Http\Controllers\Dapur\BahanBakusController;
@@ -39,6 +40,9 @@ Route::middleware(['auth'])->group(function () {
     // Shared Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard.index');
 
+    // ===== PENGUMUMAN - Semua user bisa lihat =====
+    Route::get('/dashboard/superadmin/pengumuman', [PengumumanController::class, 'index'])->name('pengumuman.index');
+
     // ================= SUPER ADMIN =================
     Route::middleware(['role:super admin'])->group(function () {
 
@@ -62,6 +66,11 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/dashboard/superadmin/settings', function () {
             return view('dashboards.superadmin.settings');
         })->name('settings.index');
+
+        // ===== PENGUMUMAN - Hanya Super Admin yang bisa buat & edit =====
+        Route::post('/dashboard/superadmin/pengumuman', [PengumumanController::class, 'store'])->name('pengumuman.store');
+        Route::get('/dashboard/superadmin/pengumuman/{pengumuman}/edit', [PengumumanController::class, 'edit'])->name('pengumuman.edit');
+        Route::put('/dashboard/superadmin/pengumuman/{pengumuman}', [PengumumanController::class, 'update'])->name('pengumuman.update');
 
     });
 
