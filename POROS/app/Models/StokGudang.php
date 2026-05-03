@@ -3,23 +3,42 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class StokGudang extends Model
 {
+    use HasFactory;
+
     protected $table = 'stok_gudang';
 
     protected $fillable = [
-        'nama_bahan',
-        'jumlah_masuk',
-        'satuan',
-        'tanggal_terima',
+        'bahan_baku_id',
         'supplier_id',
-        'batch_id',
-        'expired_date',
+        'quantity',
+        'satuan',
     ];
+
+    public function bahanBaku()
+    {
+        return $this->belongsTo(BahanBaku::class, 'bahan_baku_id');
+    }
 
     public function supplier()
     {
-        return $this->belongsTo(Supplier::class);
+        return $this->belongsTo(Supplier::class, 'supplier_id');
     }
-}
+
+    public function histories()
+    {
+        return $this->hasMany(StockHistory::class, 'stok_gudang_id')
+                    ->orderByDesc('incoming_date');
+    }
+
+    // 'critical' | 'low' | 'good'
+    public function getStockLevelAttribute(): string
+    {
+        if ($this->quantity <= 10) return 'critical';
+        if ($this->quantity <= 30) return 'low';
+        return 'good';
+    }
+}   
