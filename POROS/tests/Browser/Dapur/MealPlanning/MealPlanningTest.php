@@ -13,19 +13,11 @@ use Tests\DuskTestCase;
 class MealPlanningTest extends DuskTestCase
 {
     use DatabaseMigrations;
-
-    /**
-     * Setup environment dan data awal.
-     */
     protected function setUp(): void
     {
         parent::setUp();
         $this->artisan('db:seed');
     }
-
-    /**
-     * ═══ PBI #14: MELIHAT DAFTAR MENU MINGGUAN ═══
-     */
 
     #[Test]
     public function test_pbi14_tc01_view_dashboard_weekly(): void
@@ -67,18 +59,12 @@ class MealPlanningTest extends DuskTestCase
                     ->select('menu_id', $menu->id)
                     ->press('Jadwalkan')
                     ->waitUntilMissing('#scheduleModal');
-
-            // Klik Tombol View (Read)
             $browser->waitFor('.btn-view')
                     ->click('.btn-view')
                     ->waitFor('#viewScheduleModal', 10)
                     ->assertSee('Detail Jadwal Menu');
         });
     }
-
-    /**
-     * ═══ PBI #13: MEMASUKKAN RESEP DAN JADWAL MENU ═══
-     */
 
     #[Test]
     public function test_pbi13_tc01_add_schedule_positive(): void
@@ -109,10 +95,9 @@ class MealPlanningTest extends DuskTestCase
 
             $browser->loginAs($user)
                     ->visit('/dashboard/dapur/meal-planning')
-                    ->click('.btn-outline') // + Add New Menu
+                    ->click('.btn-outline')
                     ->waitFor('#addMenuModal')
                     ->type('nama_menu', 'Nasi Goreng Dusk')
-                    // Karena menggunakan searchable select custom, kita isi hidden inputnya langsung
                     ->keys('input[name="ingredients[0][gramasi]"]', '200')
                     ->script("document.querySelector('input[name=\"ingredients[0][bahan_id]\"]').value = '{$bahan->id}';");
 
@@ -134,15 +119,11 @@ class MealPlanningTest extends DuskTestCase
                     ->click('.add-menu-link')
                     ->waitFor('#scheduleModal')
                     ->select('menu_id', $menu->id)
-                    ->type('#schedulePortionInput', '-5') // Negatif
+                    ->type('#schedulePortionInput', '-5')
                     ->press('Jadwalkan')
                     ->assertPathIs('/dashboard/dapur/meal-planning');
         });
     }
-
-    /**
-     * ═══ PBI #15: MEMPERBARUI ISI RESEP ATAU MENU ═══
-     */
 
     #[Test]
     public function test_pbi15_tc01_edit_schedule_portion_positive(): void
