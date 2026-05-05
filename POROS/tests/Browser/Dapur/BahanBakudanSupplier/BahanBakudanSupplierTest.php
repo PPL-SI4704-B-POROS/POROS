@@ -54,7 +54,9 @@ class BahanBakudanSupplierTest extends DuskTestCase
             $browser->loginAs($user)
                     ->visit('/dashboard/dapur/inventory')
                     ->press('Simpan') 
-                    ->assertPresent('input[name="nama_bahan"]:invalid');
+                    ->assertPresent('input[name="nama_bahan"]:invalid')
+                    ->press('Simpan Supplier')
+                    ->assertPresent('input[name="nama_supplier"]:invalid');
         });
     }
 
