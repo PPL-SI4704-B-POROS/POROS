@@ -51,7 +51,7 @@
                 <svg viewBox="0 0 24 24"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
                 <span class="nav-text">Inventory Management</span>
             </a>
-            <a href="{{ route('deliveries.index') }}" class="nav-link {{ Request::routeIs('deliveries.index') ? 'active' : '' }}">
+            <a href="{{ route('stocks.index') }}" class="nav-link {{ Request::routeIs('stocks.index') ? 'active' : '' }}">
                 <svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
                 <span class="nav-text">Logistics & Deliveries</span>
             </a>
@@ -59,6 +59,10 @@
             <a href="{{ route('dashboard.sekolah.monitoring') }}" class="nav-link {{ Request::routeIs('dashboard.sekolah.monitoring') ? 'active' : '' }}">
                 <svg viewBox="0 0 24 24"><path d="M3 21h18M3 10l9-7 9 7v11H3V10z"/><path d="M9 21V11h6v10"/></svg>
                 <span class="nav-text">School Monitoring</span>
+            </a>
+            <a href="{{ route('sekolah.siswas.index') }}" class="nav-link {{ Request::routeIs('sekolah.siswas.index') ? 'active' : '' }}">
+                <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                <span class="nav-text">Data Siswa</span>
             </a>
         @endif
     </nav>
