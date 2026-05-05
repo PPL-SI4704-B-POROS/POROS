@@ -23,4 +23,6 @@ phpunit.dusk.xml
 /tests/Browser/screenshots/*
 !/tests/Browser/screenshots/.gitignore
 /tests/Browser/console/*
-!/tests/Browser/console/.gitignore\
+!/tests/Browser/console/.gitignore
+#
+#
