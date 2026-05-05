@@ -1,29 +1,40 @@
 <?php
 
 use Laravel\Dusk\Browser;
+use Illuminate\Foundation\Testing\DatabaseMigrations;
 use App\Models\User;
 use App\Models\BahanBaku;
 use App\Models\Supplier;
 use App\Models\KatalogPangan;
 use App\Models\StokGudang;
 use App\Models\StockHistory;
-use Illuminate\Support\Facades\DB;
+
+uses(DatabaseMigrations::class);
 
 beforeEach(function () {
-    DB::statement('SET FOREIGN_KEY_CHECKS=0');
-    StockHistory::whereHas('stokGudang', fn($q) => $q->whereHas('bahanBaku', fn($q2) => $q2->where('nama_bahan', 'Bahan Test')))->forceDelete();
-    StokGudang::whereHas('bahanBaku', fn($q) => $q->where('nama_bahan', 'Bahan Test'))->forceDelete();
-    BahanBaku::withTrashed()->where('nama_bahan', 'Bahan Test')->forceDelete();
-    KatalogPangan::withTrashed()->where('kode_tkpi', 'TEST-001')->forceDelete();
-    Supplier::withTrashed()->where('nama_supplier', 'Supplier Test')->forceDelete();
-    DB::statement('SET FOREIGN_KEY_CHECKS=1');
 
-    $supplier = Supplier::create([
-        'nama_supplier' => 'Supplier Test',
-        'alamat'        => 'Jl. Test No. 1',
-        'kontak'        => '08123456789',
-    ]);
+    // 🔥 reset DB + seed (biar konsisten semua laptop)
+    $this->artisan('db:seed');
 
+    // ✅ pastikan user dapur ada
+    $this->user = User::where('email', 'dapur@poros.com')->first();
+
+    if (!$this->user) {
+        throw new Exception('User dapur tidak ditemukan dari seeder');
+    }
+
+    // ✅ ambil supplier dari seeder (fallback kalau gak ada)
+    $supplier = Supplier::first();
+
+    if (!$supplier) {
+        $supplier = Supplier::create([
+            'nama_supplier' => 'Supplier Test',
+            'alamat'        => 'Jl. Test No. 1',
+            'kontak'        => '08123456789',
+        ]);
+    }
+
+    // ✅ buat data test
     $katalog = KatalogPangan::create([
         'kode_tkpi'       => 'TEST-001',
         'nama_pangan'     => 'Bahan Test',
@@ -40,7 +51,7 @@ beforeEach(function () {
         'stok_minimal'      => 10,
     ]);
 
-    StokGudang::create([
+    $this->stok = StokGudang::create([
         'bahan_baku_id' => $bahanBaku->id,
         'supplier_id'   => $supplier->id,
         'quantity'      => 50,
@@ -49,10 +60,11 @@ beforeEach(function () {
 });
 
 test('history - ada data incoming, tampil di modal', function () {
-    $user   = User::where('email', 'dapur@poros.com')->first();
-    $stok   = StokGudang::latest()->first();
 
-    // Seed history langsung
+    $user = $this->user;
+    $stok = $this->stok;
+
+    // seed history
     StockHistory::create([
         'stok_gudang_id' => $stok->id,
         'status'         => 'incoming',
@@ -74,8 +86,9 @@ test('history - ada data incoming, tampil di modal', function () {
 });
 
 test('history - belum ada transaksi, tampil pesan kosong', function () {
-    $user = User::where('email', 'dapur@poros.com')->first();
-    $stok = StokGudang::latest()->first();
+
+    $user = $this->user;
+    $stok = $this->stok;
 
     $this->browse(function (Browser $browser) use ($user, $stok) {
         $browser->loginAs($user)
