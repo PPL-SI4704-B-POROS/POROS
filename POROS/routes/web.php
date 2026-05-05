@@ -1,9 +1,6 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-<<<<<<< HEAD
-use App\Http\Controllers\StudentController;
-=======
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ProfileController;
@@ -16,16 +13,10 @@ use App\Http\Controllers\Dapur\ProduksiHarianController;
 use App\Http\Controllers\Dapur\BahanBakusController;
 use App\Http\Controllers\Dapur\SuppliersController;
 
->>>>>>> 678912f6c89aed1657d54a4d08c7e5d71ce204db
 Route::get('/', function () {
     return redirect()->route('login');
 });
 
-<<<<<<< HEAD
-
-Route::get('/students/create', [StudentController::class, 'create'])->name('students.create');
-Route::get('/students', [StudentController::class, 'index'])->name('students.index');
-=======
 // ================= LOGIN =================
 Route::get('/login', [AuthController::class, 'login'])->name('login');
 Route::post('/login', [AuthController::class, 'authenticate'])->name('login.post');
@@ -121,4 +112,3 @@ Route::middleware(['auth'])->group(function () {
     });
 
 });
->>>>>>> 678912f6c89aed1657d54a4d08c7e5d71ce204db
