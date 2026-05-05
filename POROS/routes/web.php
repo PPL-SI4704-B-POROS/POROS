@@ -12,6 +12,7 @@ use App\Http\Controllers\Dapur\MenuController;
 use App\Http\Controllers\Dapur\ProduksiHarianController;
 use App\Http\Controllers\Dapur\BahanBakusController;
 use App\Http\Controllers\Dapur\SuppliersController;
+use App\Http\Controllers\Sekolah\SiswaController;
 
 Route::get('/', function () {
     return redirect()->route('login');
@@ -109,6 +110,13 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/dashboard/sekolah/monitoring', function () {
             return view('dashboards.sekolah.monitoring');
         })->name('dashboard.sekolah.monitoring');
+
+        // Student Management for Sekolah
+        Route::get('/dashboard/sekolah/siswas', [SiswaController::class, 'index'])->name('sekolah.siswas.index');
+        Route::post('/dashboard/sekolah/siswas', [SiswaController::class, 'store'])->name('sekolah.siswas.store');
+        Route::put('/dashboard/sekolah/siswas/{siswa}', [SiswaController::class, 'update'])->name('sekolah.siswas.update');
+        Route::delete('/dashboard/sekolah/siswas/{siswa}', [SiswaController::class, 'destroy'])->name('sekolah.siswas.destroy');
+        Route::post('/dashboard/sekolah/siswas/{siswa}/antropometri', [SiswaController::class, 'storeAntropometri'])->name('sekolah.siswas.antropometri.store');
     });
 
 });
