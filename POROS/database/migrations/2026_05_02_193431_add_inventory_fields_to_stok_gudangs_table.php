@@ -21,14 +21,16 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::table('stok_gudangs', function (Blueprint $table) {
-
+        // Guard: tabel mungkin sudah di-drop oleh migration yang lebih baru (062633)
+        if (!Schema::hasTable('stok_gudang')) {
+            return;
+        }
+        Schema::table('stok_gudang', function (Blueprint $table) {
             $table->dropColumn([
                 'supplier_id',
                 'batch_id',
                 'expired_date'
             ]);
-
         });
     }
 };

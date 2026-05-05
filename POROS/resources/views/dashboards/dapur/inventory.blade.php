@@ -151,7 +151,7 @@
                                 <form action="{{ route('suppliers.destroy', $supplier->id) }}" method="POST" style="margin: 0;" onsubmit="return confirm('Yakin ingin menghapus Supplier {{ $supplier->nama_supplier }} beserta SEMUA bahan bakunya?');">
                                     @csrf
                                     @method('DELETE')
-                                    <button type="submit" style="padding: 0.4rem 0.8rem; background-color: #ef4444; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.875rem;">
+                                    <button type="submit" dusk="delete-supplier-{{ $supplier->id }}" style="padding: 0.4rem 0.8rem; background-color: #ef4444; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.875rem;">
                                         Hapus Supplier
                                     </button>
                                 </form>
