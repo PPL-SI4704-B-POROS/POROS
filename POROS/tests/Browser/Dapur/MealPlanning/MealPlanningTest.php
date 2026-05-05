@@ -1,6 +1,9 @@
 <?php
 
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> 396b92a708d91f3669812074bcf1b6d964c079cb
 use Laravel\Dusk\Browser;
 use App\Models\User;
 use App\Models\Menu;
@@ -152,6 +155,7 @@ test('test_delete_success', function () {
                 ->assertDontSee('100 porsi');
     });
 });
+<<<<<<< HEAD
 =======
 namespace Tests\Browser\Dapur\MealPlanning;
 
@@ -352,3 +356,5 @@ class MealPlanningTest extends DuskTestCase
     }
 }
 >>>>>>> 565012b3174e552472aac61174ed4943b451ebe5
+=======
+>>>>>>> 396b92a708d91f3669812074bcf1b6d964c079cb
