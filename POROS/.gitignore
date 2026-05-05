@@ -24,3 +24,5 @@ phpunit.dusk.xml
 !/tests/Browser/screenshots/.gitignore
 /tests/Browser/console/*
 !/tests/Browser/console/.gitignore
+.env.example
+.env.dusk.local
