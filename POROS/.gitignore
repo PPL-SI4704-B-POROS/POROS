@@ -5,6 +5,8 @@
 /storage/*.key
 /vendor
 .env
+.env.example
+.env.dusk.local
 .env.backup
 .env.production
 .phpunit.result.cache
@@ -24,3 +26,5 @@ phpunit.dusk.xml
 !/tests/Browser/screenshots/.gitignore
 /tests/Browser/console/*
 !/tests/Browser/console/.gitignore
+#
+#
