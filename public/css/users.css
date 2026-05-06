@@ -1,0 +1,52 @@
+/* User Management Page */
+.stats-card {
+    background: white;
+    border-radius: 1.25rem;
+    padding: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    border: 1px solid #f3f4f6;
+}
+.stats-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.icon-total { background: #eff6ff; color: #3b82f6; }
+.icon-student { background: #ecfdf5; color: #10b981; }
+.icon-admin { background: #f3e8ff; color: #9333ea; }
+.icon-dapur { background: #fff7ed; color: #ea580c; }
+.icon-sekolah { background: #eff6ff; color: #2563eb; }
+
+.user-table { width: 100%; border-collapse: separate; border-spacing: 0 0.75rem; }
+.user-table th { text-align: left; padding: 1rem; color: #64748b; font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.025em; }
+.user-table td { padding: 1rem; background: white; vertical-align: middle; }
+.user-table tr td:first-child { border-radius: 12px 0 0 12px; }
+.user-table tr td:last-child { border-radius: 0 12px 12px 0; }
+
+.avatar { width: 42px; height: 42px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; color: white; margin-right: 1rem; }
+.role-badge { padding: 0.35rem 0.75rem; border-radius: 20px; font-size: 0.75rem; font-weight: 700; }
+.badge-admin { background: #f3e8ff; color: #9333ea; }
+.badge-dapur { background: #fff7ed; color: #ea580c; }
+.badge-sekolah { background: #eff6ff; color: #2563eb; }
+
+.status-pill { padding: 0.25rem 0.6rem; border-radius: 12px; font-size: 0.7rem; font-weight: 700; }
+.status-active { background: #dcfce7; color: #15803d; }
+.status-inactive { background: #f3f4f6; color: #6b7280; }
+
+.search-container { display: flex; gap: 1rem; align-items: center; margin-bottom: 1.5rem; }
+.search-input { flex: 1; padding: 0.65rem 1rem 0.65rem 2.5rem; border: 1px solid #e2e8f0; border-radius: 10px; background: white; position: relative; }
+.search-icon { position: absolute; left: 1rem; color: #94a3b8; }
+
+/* Pagination Styles */
+.pagination { display: flex; list-style: none; padding: 0; margin: 0; gap: 0.5rem; justify-content: center; align-items: center; }
+.page-item { margin: 0; }
+.page-link { display: flex; align-items: center; justify-content: center; min-width: 36px; height: 36px; padding: 0 0.5rem; border-radius: 8px; font-size: 0.85rem; font-weight: 600; color: #475569; background: white; border: 1px solid #e2e8f0; text-decoration: none; transition: all 0.2s ease; cursor: pointer; }
+.page-link:hover { background: #f8fafc; color: #ff6b00; border-color: #cbd5e1; }
+.page-item.active .page-link { background: #ff6b00; color: white; border-color: #ff6b00; }
+.page-item.disabled .page-link { background: #f1f5f9; color: #94a3b8; border-color: #e2e8f0; cursor: not-allowed; }
