@@ -8,11 +8,13 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\StokController;
 
 use App\Http\Controllers\SuperAdmin\UserController;
+use App\Http\Controllers\SuperAdmin\AnalyticsController;
 use App\Http\Controllers\Dapur\MenuController;
 use App\Http\Controllers\Dapur\ProduksiHarianController;
 use App\Http\Controllers\Dapur\BahanBakusController;
 use App\Http\Controllers\Dapur\SuppliersController;
 use App\Http\Controllers\Sekolah\SiswaController;
+
 
 Route::get('/', function () {
     return redirect()->route('login');
@@ -59,6 +61,7 @@ Route::middleware(['auth'])->group(function () {
             return view('dashboards.superadmin.settings');
         })->name('settings.index');
 
+        Route::get('/dashboard/superadmin/analytics', [AnalyticsController::class, 'index'])->name('superadmin.analytics');
     });
 
     // =========================================================
