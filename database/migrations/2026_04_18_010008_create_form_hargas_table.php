@@ -15,6 +15,7 @@ return new class extends Migration
         Schema::create('form_hargas', function (Blueprint $table) {
             $table->id();
             $table->decimal('harga_satuan', 12, 2);
+            $table->string('satuan_harga')->default('kg'); // kg, gram, butir, liter, ml, pcs, dll.
             $table->date('tanggal_update');
             $table->foreignId('supplier_id')->constrained('suppliers')->onDelete('cascade');
             $table->foreignId('bahan_id')->constrained('bahan_bakus')->onDelete('cascade');
