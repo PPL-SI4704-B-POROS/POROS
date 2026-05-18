@@ -39,6 +39,20 @@ class BahanBaku extends Model
         return $this->hasMany(MenuBahanBaku::class);
     }
 
+    public function formHargas()
+    {
+        return $this->hasMany(FormHarga::class, 'bahan_id');
+    }
+
+    public function getHargaTerbaruAttribute()
+    {
+        $latest = $this->formHargas()
+            ->where('supplier_id', $this->supplier_id)
+            ->orderBy('tanggal_update', 'desc')
+            ->first();
+        return $latest ? (float) $latest->harga_per_gram : 0.0;
+    }
+
     // Accessors for Nutrition Data via KatalogPangan
     public function getEnergiPer100gAttribute()
     {
