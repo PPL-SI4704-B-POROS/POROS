@@ -397,7 +397,7 @@
 <div id="viewScheduleModal" class="modal-form-overlay">
     <div class="view-modal-box" style="max-width:650px;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
-            <h3 style="font-size:1.2rem;font-weight:800;color:#0c1e35;">📋 Detail Jadwal Menu</h3>
+            <h3 style="font-size:1.2rem;font-weight:800;color:#0c1e35;">Detail Jadwal Menu</h3>
             <span onclick="closeModal('viewScheduleModal')" style="cursor:pointer;font-size:1.4rem;color:#6b7280;">&times;</span>
         </div>
 
