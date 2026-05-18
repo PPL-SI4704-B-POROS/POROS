@@ -21,6 +21,7 @@ class DatabaseSeeder extends Seeder
             SupplierSeeder::class,
             KatalogPanganSeeder::class,
             BahanBakuSeeder::class,
+            FormHargaSeeder::class,
             MenuSeeder::class,
             WasteSeeder::class,
         ]);

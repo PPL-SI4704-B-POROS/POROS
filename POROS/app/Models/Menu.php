@@ -27,4 +27,13 @@ class Menu extends Model
     {
         return $this->hasMany(ProduksiHarian::class);
     }
+
+    public function getHargaModalPerPorsiAttribute()
+    {
+        $total = 0;
+        foreach ($this->reseps as $resep) {
+            $total += $resep->gramasi_per_porsi * ($resep->bahanBaku->harga_terbaru ?? 0);
+        }
+        return round($total, 2);
+    }
 }

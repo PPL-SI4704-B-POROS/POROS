@@ -50,6 +50,9 @@
                             <div style="margin-bottom: 0.4rem;">
                                 <div class="menu-name">{{ $sch->menu->nama_menu }}</div>
                                 <div class="menu-portions">{{ $sch->total_target_porsi }} porsi</div>
+                                <div style="font-size:0.75rem; color:#059669; font-weight:700;">
+                                    Modal: Rp {{ number_format($sch->harga_total_modal, 0, ',', '.') }}
+                                </div>
                             </div>
                             @endif
                             @endforeach
@@ -75,8 +78,14 @@
                                         'serat' => $totalSerat,
                                         'kalsium' => $totalKalsium,
                                         'besi' => $totalBesi,
+                                        'modal_per_porsi' => $firstSch->menu->harga_modal_per_porsi,
+                                        'total_modal' => $firstSch->harga_total_modal,
                                         'ingredients' => $firstSch->menu->reseps->map(function($r) {
-                                            return ['nama' => $r->bahanBaku->nama_bahan, 'gram' => $r->gramasi_per_porsi];
+                                            return [
+                                                'nama' => $r->bahanBaku->nama_bahan, 
+                                                'gram' => $r->gramasi_per_porsi,
+                                                'harga_per_gram' => $r->bahanBaku->harga_terbaru ?? 0
+                                            ];
                                         })->values()->toArray(),
                                     ]);
                                 }
@@ -117,6 +126,9 @@
                     </div>
                     <div class="menu-title">{{ $menu->nama_menu }}</div>
                     <div class="menu-kcal">{{ round($menu->total_kalori) }} kcal</div>
+                    <div style="font-size:0.85rem; color:#059669; font-weight:700; text-align:center; margin-top:0.25rem;">
+                        Modal: Rp {{ number_format($menu->harga_modal_per_porsi, 0, ',', '.') }} / porsi
+                    </div>
 
                     <div class="nutrient-grid">
                         <div class="nutrient-box protein">
@@ -159,9 +171,15 @@
                             "serat" => $totalSerat,
                             "kalsium" => $totalKalsium,
                             "besi" => $totalBesi,
+                            "modal_per_porsi" => $menu->harga_modal_per_porsi,
                             "ingredients" => $menu->reseps->map(function($r) {
-                                return ["nama" => $r->bahanBaku->nama_bahan, "gram" => $r->gramasi_per_porsi];
-                            })
+                                return [
+                                    "nama" => $r->bahanBaku->nama_bahan, 
+                                    "gram" => $r->gramasi_per_porsi,
+                                    "harga_per_gram" => $r->bahanBaku->harga_terbaru ?? 0,
+                                    "subtotal" => $r->gramasi_per_porsi * ($r->bahanBaku->harga_terbaru ?? 0)
+                                ];
+                            })->values()->toArray()
                         ];
                     @endphp
 
@@ -242,14 +260,14 @@
 
 {{-- ═══ MODAL: VIEW MENU LIBRARY ═══ --}}
 <div id="viewMenuLibraryModal" class="modal-form-overlay">
-    <div class="modal-form-box" style="width: 480px; padding: 2rem;">
+    <div class="modal-form-box" style="width: 520px; padding: 2rem;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
             <h3 id="vmlName" style="color:var(--primary);">Nama Menu</h3>
             <span onclick="closeModal('viewMenuLibraryModal')" style="cursor:pointer;font-size:1.4rem;color:#6b7280;">&times;</span>
         </div>
         
         <div style="background:var(--bg); border-radius:12px; padding:1.5rem; margin-bottom:1.5rem;">
-            <h4 style="font-size:0.85rem; color:#6b7280; text-transform:uppercase; letter-spacing:1px; margin-bottom:1rem; border-bottom:1px solid #e5e7eb; padding-bottom:0.5rem;">Informasi Gizi / Porsi</h4>
+            <h4 style="font-size:0.85rem; color:#6b7280; text-transform:uppercase; letter-spacing:1px; margin-bottom:1rem; border-bottom:1px solid #e5e7eb; padding-bottom:0.5rem;">Informasi Gizi & Modal / Porsi</h4>
             <table style="width:100%; font-size:0.9rem; border-collapse:collapse;">
                 <tbody id="vmlNutritionBody">
                     <!-- Injected via JS -->
@@ -258,12 +276,14 @@
         </div>
 
         <div>
-            <h4 style="font-size:0.85rem; color:#6b7280; text-transform:uppercase; letter-spacing:1px; margin-bottom:1rem; border-bottom:1px solid #e5e7eb; padding-bottom:0.5rem;">Komposisi Bahan / Porsi</h4>
+            <h4 style="font-size:0.85rem; color:#6b7280; text-transform:uppercase; letter-spacing:1px; margin-bottom:1rem; border-bottom:1px solid #e5e7eb; padding-bottom:0.5rem;">Komposisi Bahan & Biaya / Porsi</h4>
             <table style="width:100%; font-size:0.9rem; border-collapse:collapse;">
                 <thead>
                     <tr style="text-align:left; color:#9ca3af; font-weight:600; font-size:0.8rem;">
                         <th style="padding-bottom:0.5rem;">Bahan Baku</th>
                         <th style="text-align:right; padding-bottom:0.5rem;">Gramasi</th>
+                        <th style="text-align:right; padding-bottom:0.5rem;">Harga/g</th>
+                        <th style="text-align:right; padding-bottom:0.5rem;">Biaya</th>
                     </tr>
                 </thead>
                 <tbody id="vmlIngredientsBody">
@@ -294,7 +314,8 @@
                         data-kcal="{{ round($m->total_kalori) }}"
                         data-protein="{{ round($m->total_protein) }}"
                         data-karbo="{{ round($m->total_karbohidrat) }}"
-                        data-lemak="{{ round($m->total_lemak) }}">
+                        data-lemak="{{ round($m->total_lemak) }}"
+                        data-modal="{{ $m->harga_modal_per_porsi }}">
                         {{ $m->nama_menu }}
                     </option>
                     @endforeach
@@ -308,8 +329,12 @@
             <div id="portionPreview" class="portion-info" style="display:none;margin-bottom:1rem;">
                 <div class="p-row"><span>Berat / porsi</span><span id="pvBerat">-</span></div>
                 <div class="p-row"><span>Kalori / porsi</span><span id="pvKcal">-</span></div>
+                <div class="p-row"><span>Estimasi Modal / porsi</span><span id="pvModalUnit" style="color:#059669; font-weight:600;">-</span></div>
                 <div class="p-row" style="border-top:1px solid #e5e7eb;padding-top:0.4rem;margin-top:0.3rem;font-weight:700;">
-                    <span>Total Berat</span><span id="pvTotal" style="color:var(--primary);font-size:1rem;">-</span>
+                    <span>Total Berat</span><span id="pvTotal">-</span>
+                </div>
+                <div class="p-row" style="font-weight:700;">
+                    <span>Total Anggaran Modal</span><span id="pvTotalModal" style="color:#059669;font-size:1rem;">-</span>
                 </div>
             </div>
 
@@ -335,7 +360,8 @@
                     @foreach($menus as $m)
                     <option value="{{ $m->id }}"
                         data-berat="{{ $m->reseps->sum('gramasi_per_porsi') }}"
-                        data-kcal="{{ round($m->total_kalori) }}">
+                        data-kcal="{{ round($m->total_kalori) }}"
+                        data-modal="{{ $m->harga_modal_per_porsi }}">
                         {{ $m->nama_menu }}
                     </option>
                     @endforeach
@@ -346,7 +372,8 @@
                 <input type="number" name="total_target_porsi" id="editPortionInput" class="f-input" min="1" required oninput="updateEditPreview()">
             </div>
             <div id="editPreview" class="portion-info" style="display:none;margin-bottom:1rem;">
-                <div class="p-row" style="font-weight:700;"><span>Total Berat</span><span id="epvTotal" style="color:var(--primary);">-</span></div>
+                <div class="p-row" style="font-weight:700;"><span>Total Berat</span><span id="epvTotal">-</span></div>
+                <div class="p-row" style="font-weight:700;"><span>Total Anggaran Modal</span><span id="epvTotalModal" style="color:#059669;">-</span></div>
             </div>
             <button type="submit" class="btn btn-primary" style="width:100%;">Simpan Perubahan</button>
         </form>
@@ -355,7 +382,7 @@
 
 {{-- ═══ MODAL: VIEW DETAIL JADWAL ═══ --}}
 <div id="viewScheduleModal" class="modal-form-overlay">
-    <div class="view-modal-box">
+    <div class="view-modal-box" style="max-width:650px;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
             <h3 style="font-size:1.2rem;font-weight:800;color:#0c1e35;">📋 Detail Jadwal Menu</h3>
             <span onclick="closeModal('viewScheduleModal')" style="cursor:pointer;font-size:1.4rem;color:#6b7280;">&times;</span>
@@ -367,13 +394,26 @@
                     <div style="font-size:1.1rem;font-weight:800;color:#0c1e35;" id="viewMenuName"></div>
                     <div style="font-size:0.8rem;color:#6b7280;" id="viewMenuPorsi"></div>
                 </div>
+                <div style="text-align:right;">
+                    <div style="font-size:0.85rem;font-weight:700;color:#059669;" id="viewMenuModalUnit">Modal: Rp 0 / porsi</div>
+                    <div style="font-size:1.05rem;font-weight:800;color:#059669;margin-top:0.1rem;" id="viewMenuModalTotal">Total Modal: Rp 0</div>
+                </div>
             </div>
         </div>
 
         <div class="view-section">
-            <div class="view-section-title">Kebutuhan Bahan Baku</div>
+            <div class="view-section-title">Kebutuhan & Biaya Bahan Baku</div>
             <table class="view-table">
-                <thead><tr><th>Bahan</th><th style="text-align:right;">Per Porsi</th><th style="text-align:right;">Total</th></tr></thead>
+                <thead>
+                    <tr>
+                        <th>Bahan</th>
+                        <th style="text-align:right;">Per Porsi</th>
+                        <th style="text-align:right;">Harga/g</th>
+                        <th style="text-align:right;">Biaya/Porsi</th>
+                        <th style="text-align:right;">Total Gram</th>
+                        <th style="text-align:right;">Total Biaya</th>
+                    </tr>
+                </thead>
                 <tbody id="viewIngredientsBody"></tbody>
             </table>
         </div>
@@ -588,20 +628,48 @@ function fmtG(g) {
 function openViewScheduleModal(data) {
     document.getElementById('viewMenuName').textContent = data.menu_name;
     document.getElementById('viewMenuPorsi').textContent = data.porsi + ' porsi';
+    
+    // Set costing in header
+    document.getElementById('viewMenuModalUnit').textContent = 'Modal: Rp ' + Math.round(data.modal_per_porsi || 0).toLocaleString('id-ID') + ' / porsi';
+    document.getElementById('viewMenuModalTotal').textContent = 'Total Modal: Rp ' + Math.round(data.total_modal || 0).toLocaleString('id-ID');
 
     // --- Ingredients Table ---
     const ingBody = document.getElementById('viewIngredientsBody');
     let ingHtml = '';
     let totalGramPerPorsi = 0;
     let totalGramAll = 0;
+    let totalBiayaPerPorsi = 0;
+    let totalBiayaAll = 0;
+    
     data.ingredients.forEach(function(ing) {
         const gram = parseFloat(ing.gram) || 0;
         const totalG = gram * data.porsi;
+        const hargaPerGram = parseFloat(ing.harga_per_gram) || 0;
+        const biayaPerPorsi = gram * hargaPerGram;
+        const totalBiaya = totalG * hargaPerGram;
+        
         totalGramPerPorsi += gram;
         totalGramAll += totalG;
-        ingHtml += `<tr><td>${ing.nama}</td><td style="text-align:right;">${fmtG(gram)}</td><td style="text-align:right;">${fmtG(totalG)}</td></tr>`;
+        totalBiayaPerPorsi += biayaPerPorsi;
+        totalBiayaAll += totalBiaya;
+        
+        ingHtml += `<tr>
+            <td>${ing.nama}</td>
+            <td style="text-align:right;">${fmtG(gram)}</td>
+            <td style="text-align:right;">Rp ${parseFloat(hargaPerGram).toFixed(2).replace(/\.00$/, '')} /g</td>
+            <td style="text-align:right;">Rp ${Math.round(biayaPerPorsi).toLocaleString('id-ID')}</td>
+            <td style="text-align:right;">${fmtG(totalG)}</td>
+            <td style="text-align:right; font-weight:600; color:#059669;">Rp ${Math.round(totalBiaya).toLocaleString('id-ID')}</td>
+        </tr>`;
     });
-    ingHtml += `<tr class="row-total"><td>Total Bahan</td><td style="text-align:right;">${fmtG(totalGramPerPorsi)}</td><td style="text-align:right;">${fmtG(totalGramAll)}</td></tr>`;
+    ingHtml += `<tr class="row-total">
+        <td>Total</td>
+        <td style="text-align:right;">${fmtG(totalGramPerPorsi)}</td>
+        <td style="text-align:right;">-</td>
+        <td style="text-align:right;">Rp ${Math.round(totalBiayaPerPorsi).toLocaleString('id-ID')}</td>
+        <td style="text-align:right;">${fmtG(totalGramAll)}</td>
+        <td style="text-align:right; color:#059669; font-weight:700;">Rp ${Math.round(totalBiayaAll).toLocaleString('id-ID')}</td>
+    </tr>`;
     ingBody.innerHTML = ingHtml;
 
     // --- Nutrition Table ---
@@ -631,7 +699,7 @@ function openViewScheduleModal(data) {
 function openViewMenuLibraryModal(data) {
     document.getElementById('vmlName').textContent = data.nama_menu;
 
-    // --- Nutrition Table ---
+    // --- Nutrition & Cost Table ---
     const nutBody = document.getElementById('vmlNutritionBody');
     const nutrients = [
         { label: 'Energi', val: data.kalori, unit: 'kcal' },
@@ -649,18 +717,35 @@ function openViewMenuLibraryModal(data) {
             nutHtml += `<tr><td style="padding:0.4rem 0;">${n.label}</td><td style="text-align:right; font-weight:600; color:#111827;">${perPorsi} ${n.unit}</td></tr>`;
         }
     });
+    nutHtml += `<tr style="border-top: 1px solid #e5e7eb; font-weight:700;"><td style="padding:0.4rem 0; color:#059669;">Harga Modal</td><td style="text-align:right; font-weight:700; color:#059669;">Rp ${Math.round(data.modal_per_porsi || 0).toLocaleString('id-ID')} / porsi</td></tr>`;
     nutBody.innerHTML = nutHtml;
 
     // --- Ingredients Table ---
     const ingBody = document.getElementById('vmlIngredientsBody');
     let ingHtml = '';
     let totalGram = 0;
+    let totalModal = 0;
+    
     data.ingredients.forEach(function(ing) {
         const gram = parseFloat(ing.gram) || 0;
+        const hargaPerGram = parseFloat(ing.harga_per_gram) || 0;
+        const subtotal = parseFloat(ing.subtotal) || (gram * hargaPerGram);
         totalGram += gram;
-        ingHtml += `<tr><td style="padding:0.4rem 0;">${ing.nama}</td><td style="text-align:right;">${fmtG(gram)}</td></tr>`;
+        totalModal += subtotal;
+        
+        ingHtml += `<tr>
+            <td style="padding:0.4rem 0;">${ing.nama}</td>
+            <td style="text-align:right;">${fmtG(gram)}</td>
+            <td style="text-align:right;">Rp ${parseFloat(hargaPerGram).toFixed(2).replace(/\.00$/, '')} /g</td>
+            <td style="text-align:right; font-weight:600; color:#111827;">Rp ${Math.round(subtotal).toLocaleString('id-ID')}</td>
+        </tr>`;
     });
-    ingHtml += `<tr style="border-top:1px solid #e5e7eb; font-weight:700;"><td style="padding-top:0.6rem; margin-top:0.4rem;">Total Berat per Porsi</td><td style="text-align:right; padding-top:0.6rem;">${fmtG(totalGram)}</td></tr>`;
+    ingHtml += `<tr style="border-top:1px solid #e5e7eb; font-weight:700;">
+        <td style="padding-top:0.6rem; margin-top:0.4rem;">Total per Porsi</td>
+        <td style="text-align:right; padding-top:0.6rem;">${fmtG(totalGram)}</td>
+        <td style="text-align:right; padding-top:0.6rem;">-</td>
+        <td style="text-align:right; padding-top:0.6rem; color:#059669;">Rp ${Math.round(totalModal).toLocaleString('id-ID')}</td>
+    </tr>`;
     ingBody.innerHTML = ingHtml;
 
     document.getElementById('viewMenuLibraryModal').classList.add('visible');
@@ -691,12 +776,19 @@ function updatePortionPreview() {
     const porsi = parseInt(document.getElementById('schedulePortionInput').value) || 0;
     const preview = document.getElementById('portionPreview');
     if (!opt || !opt.value) { preview.style.display = 'none'; return; }
+    
     const berat = parseFloat(opt.dataset.berat) || 0;
     const kcal = parseFloat(opt.dataset.kcal) || 0;
+    const modalUnit = parseFloat(opt.dataset.modal) || 0;
+    
     const totalBerat = berat * porsi;
+    const totalModal = modalUnit * porsi;
+    
     document.getElementById('pvBerat').textContent = berat + ' g';
     document.getElementById('pvKcal').textContent = kcal + ' kcal';
+    document.getElementById('pvModalUnit').textContent = 'Rp ' + Math.round(modalUnit).toLocaleString('id-ID') + ' / porsi';
     document.getElementById('pvTotal').textContent = (totalBerat >= 1000 ? (totalBerat/1000).toFixed(1)+' kg' : totalBerat+' g') + ' (' + porsi + ' porsi)';
+    document.getElementById('pvTotalModal').textContent = 'Rp ' + Math.round(totalModal).toLocaleString('id-ID');
     preview.style.display = 'block';
 }
 
@@ -706,9 +798,15 @@ function updateEditPreview() {
     const porsi = parseInt(document.getElementById('editPortionInput').value) || 0;
     const preview = document.getElementById('editPreview');
     if (!opt || !opt.value) { preview.style.display = 'none'; return; }
+    
     const berat = parseFloat(opt.dataset.berat) || 0;
+    const modalUnit = parseFloat(opt.dataset.modal) || 0;
+    
     const totalBerat = berat * porsi;
+    const totalModal = modalUnit * porsi;
+    
     document.getElementById('epvTotal').textContent = (totalBerat >= 1000 ? (totalBerat/1000).toFixed(1)+' kg' : totalBerat+' g') + ' (' + porsi + ' porsi)';
+    document.getElementById('epvTotalModal').textContent = 'Rp ' + Math.round(totalModal).toLocaleString('id-ID');
     preview.style.display = 'block';
 }
 </script>
