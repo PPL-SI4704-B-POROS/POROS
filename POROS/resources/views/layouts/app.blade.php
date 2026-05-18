@@ -36,6 +36,10 @@
                 showModal("{{ session('error') }}", 'error', 'Peringatan', 'Silakan periksa kembali data yang Anda masukkan.');
             @endif
 
+            @if(session('error_toast'))
+                showToast("{{ session('error_toast') }}", 'error');
+            @endif
+
             @if($errors->any())
                 @php
                     $isLogin = Route::currentRouteName() == 'login' || Route::currentRouteName() == 'login.post';

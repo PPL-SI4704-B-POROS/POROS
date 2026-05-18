@@ -76,6 +76,7 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/dashboard/schedule', [ProduksiHarianController::class, 'store'])->name('schedule.store');
         Route::put('/dashboard/schedule/{id}', [ProduksiHarianController::class, 'update'])->name('schedule.update');
         Route::delete('/dashboard/schedule/{id}', [ProduksiHarianController::class, 'destroy'])->name('schedule.destroy');
+        Route::post('/dashboard/schedule/{id}/update-status', [ProduksiHarianController::class, 'updateStatus'])->name('schedule.updateStatus');
 
         // ================= INVENTORY =================
         Route::get('/dashboard/dapur/inventory', [BahanBakusController::class, 'index'])->name('inventory.index');

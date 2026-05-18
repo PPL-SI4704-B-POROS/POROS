@@ -53,6 +53,17 @@
                                 <div style="font-size:0.75rem; color:#059669; font-weight:700;">
                                     Modal: Rp {{ number_format($sch->harga_total_modal, 0, ',', '.') }}
                                 </div>
+                                @php
+                                    $badgeBg = '#fef3c7'; $badgeColor = '#d97706';
+                                    if ($sch->status_produksi === 'Memasak') {
+                                        $badgeBg = '#ffedd5'; $badgeColor = '#ea580c';
+                                    } elseif ($sch->status_produksi === 'Siap Kirim') {
+                                        $badgeBg = '#d1fae5'; $badgeColor = '#059669';
+                                    }
+                                @endphp
+                                <div style="display:inline-block; font-size:0.65rem; font-weight:700; padding:0.15rem 0.4rem; border-radius:6px; margin-top:0.25rem; background:{{ $badgeBg }}; color:{{ $badgeColor }}; text-transform:uppercase; letter-spacing:0.5px;">
+                                    {{ $sch->status_produksi }}
+                                </div>
                             </div>
                             @endif
                             @endforeach
@@ -69,6 +80,8 @@
                                     }
 
                                     $viewData = json_encode([
+                                        'id' => $firstSch->id,
+                                        'status_produksi' => $firstSch->status_produksi,
                                         'menu_name' => $firstSch->menu->nama_menu,
                                         'porsi' => $firstSch->total_target_porsi,
                                         'kalori' => $firstSch->menu->total_kalori,
@@ -392,7 +405,10 @@
             <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:0.75rem;">
                 <div>
                     <div style="font-size:1.1rem;font-weight:800;color:#0c1e35;" id="viewMenuName"></div>
-                    <div style="font-size:0.8rem;color:#6b7280;" id="viewMenuPorsi"></div>
+                    <div style="display:flex; gap:0.5rem; align-items:center; margin-top:0.25rem;">
+                        <span style="font-size:0.8rem;color:#6b7280;" id="viewMenuPorsi"></span>
+                        <span id="viewMenuStatusBadge" style="font-size:0.65rem; font-weight:700; padding:0.15rem 0.4rem; border-radius:6px; text-transform:uppercase; letter-spacing:0.5px;">-</span>
+                    </div>
                 </div>
                 <div style="text-align:right;">
                     <div style="font-size:0.85rem;font-weight:700;color:#059669;" id="viewMenuModalUnit">Modal: Rp 0 / porsi</div>
@@ -426,7 +442,11 @@
             </table>
         </div>
 
-        <button type="button" onclick="closeModal('viewScheduleModal')" class="btn btn-primary" style="width:100%;margin-top:0.5rem;">Tutup</button>
+        <div id="viewScheduleActions" style="margin-top:1rem; margin-bottom:1rem; padding-top:1.5rem; border-top:1px solid #e5e7eb;">
+            <!-- Injected dynamically via JavaScript -->
+        </div>
+
+        <button type="button" onclick="closeModal('viewScheduleModal')" class="btn btn-primary" style="width:100%;">Tutup</button>
     </div>
 </div>
 
@@ -450,6 +470,7 @@
 
 @section('scripts')
 <script>
+const csrfToken = '{{ csrf_token() }}';
 let ic = 1;
 
 // ── Bahan data (sorted A-Z from controller) ──
@@ -632,6 +653,53 @@ function openViewScheduleModal(data) {
     // Set costing in header
     document.getElementById('viewMenuModalUnit').textContent = 'Modal: Rp ' + Math.round(data.modal_per_porsi || 0).toLocaleString('id-ID') + ' / porsi';
     document.getElementById('viewMenuModalTotal').textContent = 'Total Modal: Rp ' + Math.round(data.total_modal || 0).toLocaleString('id-ID');
+
+    // Set status badge styling
+    const status = data.status_produksi || 'Menunggu';
+    const badge = document.getElementById('viewMenuStatusBadge');
+    badge.textContent = status;
+    if (status === 'Memasak') {
+        badge.style.background = '#ffedd5';
+        badge.style.color = '#ea580c';
+    } else if (status === 'Siap Kirim') {
+        badge.style.background = '#d1fae5';
+        badge.style.color = '#059669';
+    } else { // Menunggu
+        badge.style.background = '#fef3c7';
+        badge.style.color = '#d97706';
+    }
+
+    // Set action buttons dynamically
+    const actionsDiv = document.getElementById('viewScheduleActions');
+    actionsDiv.innerHTML = '';
+    
+    if (status === 'Menunggu') {
+        actionsDiv.innerHTML = `
+            <form action="/dashboard/schedule/${data.id}/update-status" method="POST">
+                <input type="hidden" name="_token" value="${csrfToken}">
+                <input type="hidden" name="status_produksi" value="Memasak">
+                <button type="submit" class="btn" style="width:100%; background:#10b981; color:white; border:none; padding:0.75rem; border-radius:8px; font-weight:700; cursor:pointer; font-size:0.9rem; transition: background 0.2s;" onmouseover="this.style.background='#059669'" onmouseout="this.style.background='#10b981'">
+                    Mulai Memasak
+                </button>
+            </form>
+        `;
+    } else if (status === 'Memasak') {
+        actionsDiv.innerHTML = `
+            <form action="/dashboard/schedule/${data.id}/update-status" method="POST">
+                <input type="hidden" name="_token" value="${csrfToken}">
+                <input type="hidden" name="status_produksi" value="Siap Kirim">
+                <button type="submit" class="btn" style="width:100%; background:#10b981; color:white; border:none; padding:0.75rem; border-radius:8px; font-weight:700; cursor:pointer; font-size:0.9rem; transition: background 0.2s;" onmouseover="this.style.background='#059669'" onmouseout="this.style.background='#10b981'">
+                    Siap Kirim
+                </button>
+            </form>
+        `;
+    } else if (status === 'Siap Kirim') {
+        actionsDiv.innerHTML = `
+            <div style="text-align:center; color:#059669; font-weight:700; font-size:0.85rem; background:#ecfdf5; padding:0.75rem; border-radius:8px; border: 1px solid #a7f3d0; letter-spacing:0.5px;">
+                Menu telah selesai di masak dan siap di kirim
+            </div>
+        `;
+    }
 
     // --- Ingredients Table ---
     const ingBody = document.getElementById('viewIngredientsBody');
