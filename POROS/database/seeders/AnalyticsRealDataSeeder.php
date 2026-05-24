@@ -2,9 +2,9 @@
 
 namespace Database\Seeders;
 
+use Carbon\Carbon;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
-use Carbon\Carbon;
 
 class AnalyticsRealDataSeeder extends Seeder
 {
@@ -13,7 +13,7 @@ class AnalyticsRealDataSeeder extends Seeder
         // ---------------------------------------------------------
         // 1. BIAYA BELANJA (PBI-34)
         // ---------------------------------------------------------
-        
+
         $supplierIds = DB::table('suppliers')->pluck('id')->toArray();
         if (empty($supplierIds)) {
             $suppliers = [
@@ -35,6 +35,25 @@ class AnalyticsRealDataSeeder extends Seeder
         $selectedBahanIds = array_slice((array) $bahanIds, 0, 8);
 
         $biayaData = [];
+
+        // Data untuk tahun 2025 (12 bulan)
+        for ($m = 1; $m <= 12; $m++) {
+            for ($j = 0; $j < rand(5, 10); $j++) {
+                $date = Carbon::create(2025, $m, rand(1, 28))->format('Y-m-d');
+                $bahan_id = $selectedBahanIds[array_rand($selectedBahanIds)];
+                $biayaData[] = [
+                    'bahan_baku_id' => $bahan_id,
+                    'supplier_id' => $supplierIds[array_rand($supplierIds)],
+                    'jumlah_beli' => rand(10, 50),
+                    'total_harga' => rand(100000, 1000000),
+                    'tanggal_belanja' => $date,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ];
+            }
+        }
+
+        // Data untuk 30 hari terakhir
         for ($i = 0; $i < 30; $i++) {
             $date = Carbon::now()->subDays(30 - $i)->format('Y-m-d');
             for ($j = 0; $j < rand(3, 6); $j++) {
@@ -46,7 +65,7 @@ class AnalyticsRealDataSeeder extends Seeder
                     'total_harga' => rand(100000, 1000000),
                     'tanggal_belanja' => $date,
                     'created_at' => now(),
-                    'updated_at' => now()
+                    'updated_at' => now(),
                 ];
             }
         }
@@ -56,16 +75,16 @@ class AnalyticsRealDataSeeder extends Seeder
         // 2. TREN GIZI BB/TB (PBI-35)
         // ---------------------------------------------------------
         $siswaIds = DB::table('siswas')->pluck('id')->toArray();
-        
+
         if (empty($siswaIds)) {
             $sekolahId = DB::table('sekolahs')->first()->id ?? DB::table('sekolahs')->insertGetId(['nama_sekolah' => 'SDN 01', 'created_at' => now(), 'updated_at' => now()]);
-            for ($i=0; $i<15; $i++) {
+            for ($i = 0; $i < 15; $i++) {
                 $siswaIds[] = DB::table('siswas')->insertGetId([
-                    'nama_siswa' => 'Siswa ' . $i,
-                    'nisn' => '1000' . $i,
+                    'nama_siswa' => 'Siswa '.$i,
+                    'nisn' => '1000'.$i,
                     'sekolah_id' => $sekolahId,
                     'created_at' => now(),
-                    'updated_at' => now()
+                    'updated_at' => now(),
                 ]);
             }
         }
@@ -74,7 +93,7 @@ class AnalyticsRealDataSeeder extends Seeder
         // Just take 15 siswas to generate trend
         $selectedSiswas = array_slice($siswaIds, 0, 15);
         foreach ($selectedSiswas as $idx => $siswaId) {
-            $isKurangGizi = $idx < 2; 
+            $isKurangGizi = $idx < 2;
             $startBB = $isKurangGizi ? rand(160, 190) / 10 : rand(220, 350) / 10;
             $startTB = $isKurangGizi ? rand(110, 120) : rand(125, 140);
 
@@ -88,7 +107,7 @@ class AnalyticsRealDataSeeder extends Seeder
                     'status_gizi' => $isKurangGizi ? 'Kurang' : 'Baik',
                     'tanggal_ukur' => $date,
                     'created_at' => now(),
-                    'updated_at' => now()
+                    'updated_at' => now(),
                 ];
             }
         }
@@ -102,7 +121,7 @@ class AnalyticsRealDataSeeder extends Seeder
             'Porsi kebanyakan' => 30,
             'Menu ga menarik' => 20,
             'Siswa sedang sakit' => 10,
-            'Kurang matang' => 5
+            'Kurang matang' => 5,
         ];
 
         $menuIds = DB::table('menus')->pluck('id')->toArray();
@@ -110,8 +129,8 @@ class AnalyticsRealDataSeeder extends Seeder
             $menus = ['Nasi Ayam', 'Sayur Sop', 'Ikan Balado'];
             foreach ($menus as $menu) {
                 $menuIds[] = DB::table('menus')->insertGetId([
-                    'nama_menu' => $menu, 'total_kalori' => 500, 'total_protein' => 20, 
-                    'total_karbohidrat' => 60, 'total_lemak' => 15, 'created_at' => now(), 'updated_at' => now()
+                    'nama_menu' => $menu, 'total_kalori' => 500, 'total_protein' => 20,
+                    'total_karbohidrat' => 60, 'total_lemak' => 15, 'created_at' => now(), 'updated_at' => now(),
                 ]);
             }
         }
@@ -123,14 +142,14 @@ class AnalyticsRealDataSeeder extends Seeder
         for ($i = 0; $i < 40; $i++) {
             $date = Carbon::now()->subDays(rand(1, 30))->format('Y-m-d');
             $menuId = $menuIds[array_rand($menuIds)];
-            
+
             $produksiId = DB::table('produksi_harians')->insertGetId([
                 'tanggal_produksi' => $date,
                 'total_target_porsi' => 100,
                 'status_produksi' => 'Siap Kirim',
                 'menu_id' => $menuId,
                 'created_at' => now(),
-                'updated_at' => now()
+                'updated_at' => now(),
             ]);
 
             $pengirimanId = DB::table('pengirimans')->insertGetId([
@@ -142,7 +161,7 @@ class AnalyticsRealDataSeeder extends Seeder
                 'sekolah_id' => $sekolahId,
                 'kurir_id' => $kurirId,
                 'created_at' => now(),
-                'updated_at' => now()
+                'updated_at' => now(),
             ]);
 
             $rand = rand(1, 100);
@@ -163,7 +182,7 @@ class AnalyticsRealDataSeeder extends Seeder
                 'sekolah_id' => $sekolahId,
                 'pengiriman_id' => $pengirimanId,
                 'created_at' => now(),
-                'updated_at' => now()
+                'updated_at' => now(),
             ];
         }
 
