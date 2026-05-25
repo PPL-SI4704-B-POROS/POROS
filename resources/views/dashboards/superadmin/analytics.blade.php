@@ -156,10 +156,10 @@
             <div class="analytics-card">
                 <div class="chart-title">
                     <div style="width: 14px; height: 14px; background: var(--primary); border-radius: 4px;"></div>
-                    Distribusi Biaya Belanja
+                    Tren Biaya Bulanan
                 </div>
                 <div style="height: 300px; flex: 1;">
-                    <canvas id="biayaChart"></canvas>
+                    <canvas id="biayaBulananChart"></canvas>
                 </div>
             </div>
             <div class="analytics-card">
@@ -179,6 +179,23 @@
                         @endforeach
                     </ul>
                 @endif
+            </div>
+        </div>
+
+        <div class="analytics-row" style="grid-template-columns: 1fr;">
+            <div class="analytics-card">
+                <div class="chart-title" style="justify-content: space-between; display: flex; width: 100%;">
+                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                        <div style="width: 14px; height: 14px; background: #f59e0b; border-radius: 4px;"></div>
+                        <span id="detailBiayaTitle">Distribusi Biaya Bahan Baku (Semua Bulan)</span>
+                    </div>
+                    <button type="button" class="btn btn-primary" id="resetDetailBtn" style="display: none; padding: 0.25rem 0.75rem; font-size: 0.85rem; height: auto;">
+                        Tampilkan Semua
+                    </button>
+                </div>
+                <div style="height: 300px; flex: 1;">
+                    <canvas id="biayaChart"></canvas>
+                </div>
             </div>
         </div>
 
@@ -240,18 +257,29 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-trendline"></script>
 <script>
-    Chart.defaults.font.family = "'Inter', sans-serif";
+    Chart.defaults.font.family = "'Plus Jakarta Sans', sans-serif";
     Chart.defaults.color = '#6b7280';
 
-    // Biaya Chart (PBI-34)
-    new Chart(document.getElementById('biayaChart'), {
+    // Biaya Chart (PBI-34) - Data Global
+    const biayaGlobalLabels = {!! json_encode($biayaData->pluck('nama_bahan')) !!};
+    const biayaGlobalData = {!! json_encode($biayaData->pluck('total')) !!};
+    
+    // Data Bulanan & Detail
+    const biayaBulananData = {!! json_encode($biayaBulanan) !!};
+    const biayaDetailBulananData = {!! json_encode($biayaDetailBulanan) !!};
+
+    const bulananLabels = Object.keys(biayaBulananData);
+    const bulananTotals = Object.values(biayaBulananData);
+
+    // 1. Chart Tren Biaya Bulanan
+    const biayaBulananChart = new Chart(document.getElementById('biayaBulananChart'), {
         type: 'bar',
         data: {
-            labels: {!! json_encode($biayaData->pluck('nama_bahan')) !!},
+            labels: bulananLabels,
             datasets: [{
                 label: 'Total Belanja (Rp)',
-                data: {!! json_encode($biayaData->pluck('total')) !!},
-                backgroundColor: '#ff6b00',
+                data: bulananTotals,
+                backgroundColor: 'rgba(59, 130, 246, 0.8)',
                 borderRadius: 6,
                 barThickness: 35,
                 trendlineLinear: {
@@ -259,6 +287,53 @@
                     lineStyle: "dotted",
                     width: 2
                 }
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { 
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return 'Rp ' + context.parsed.y.toLocaleString('id-ID');
+                        },
+                        afterLabel: function() {
+                            return 'Klik untuk melihat detail bahan baku';
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: { 
+                    grid: { borderDash: [4, 4], drawBorder: false },
+                    ticks: { callback: value => 'Rp ' + value.toLocaleString('id-ID') }
+                },
+                x: { grid: { display: false } }
+            },
+            onClick: (e, elements) => {
+                if (elements.length > 0) {
+                    const index = elements[0].index;
+                    const selectedMonth = bulananLabels[index];
+                    updateDetailChart(selectedMonth);
+                }
+            }
+        }
+    });
+
+    // 2. Chart Distribusi Biaya per Bahan Baku
+    const detailChartCtx = document.getElementById('biayaChart');
+    let biayaDetailChart = new Chart(detailChartCtx, {
+        type: 'bar',
+        data: {
+            labels: biayaGlobalLabels,
+            datasets: [{
+                label: 'Total Belanja (Rp)',
+                data: biayaGlobalData,
+                backgroundColor: '#f59e0b',
+                borderRadius: 6,
+                barThickness: 35
             }]
         },
         options: {
@@ -273,6 +348,30 @@
                 x: { grid: { display: false } }
             }
         }
+    });
+
+    // Fungsi update chart saat bulan di-klik
+    function updateDetailChart(month) {
+        const detailData = biayaDetailBulananData[month] || {};
+        const labels = Object.keys(detailData);
+        const data = Object.values(detailData);
+
+        biayaDetailChart.data.labels = labels;
+        biayaDetailChart.data.datasets[0].data = data;
+        biayaDetailChart.update();
+
+        document.getElementById('detailBiayaTitle').innerText = 'Distribusi Biaya Bahan Baku (' + month + ')';
+        document.getElementById('resetDetailBtn').style.display = 'block';
+    }
+
+    // Fungsi reset chart ke semua bulan
+    document.getElementById('resetDetailBtn').addEventListener('click', function() {
+        biayaDetailChart.data.labels = biayaGlobalLabels;
+        biayaDetailChart.data.datasets[0].data = biayaGlobalData;
+        biayaDetailChart.update();
+
+        document.getElementById('detailBiayaTitle').innerText = 'Distribusi Biaya Bahan Baku (Semua Bulan)';
+        this.style.display = 'none';
     });
 
     // Trend Gizi Chart (PBI-35)
