@@ -60,7 +60,7 @@
 
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
                             <div>
-                                <label style="display: block; margin-bottom: 0.5rem; color: #0c1e35; font-weight: 600;">Jml Stok</label>
+                                <label style="display: block; margin-bottom: 0.5rem; color: #0c1e35; font-weight: 600;">Jumlah Stok (Kg)</label>
                                 <input type="number" name="stok" value="{{ old('stok', $bahanBaku->stok ?? '') }}" required 
                                     style="width: 100%; padding: 0.75rem; border: 1px solid #e2e8f0; border-radius: 6px; outline: none;">
                             </div>

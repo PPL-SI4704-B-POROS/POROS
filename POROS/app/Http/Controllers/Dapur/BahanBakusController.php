@@ -68,9 +68,10 @@ class BahanBakusController extends Controller
         $latestFormHarga = FormHarga::where('bahan_id', $bahanBaku->id)
             ->where('supplier_id', $request->supplier_id)
             ->orderBy('tanggal_update', 'desc')
+            ->orderBy('id', 'desc')
             ->first();
 
-        if ($latestFormHarga && $latestFormHarga->tanggal_update == now()->toDateString()) {
+        if ($latestFormHarga && $latestFormHarga->tanggal_update->format('Y-m-d') === now()->toDateString()) {
              $latestFormHarga->update([
                  'harga_satuan' => $request->harga,
                  'satuan_harga' => $request->satuan,

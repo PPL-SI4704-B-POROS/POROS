@@ -49,6 +49,7 @@ class BahanBaku extends Model
         $latest = $this->formHargas()
             ->where('supplier_id', $this->supplier_id)
             ->orderBy('tanggal_update', 'desc')
+            ->orderBy('id', 'desc')
             ->first();
         return $latest ? (float) $latest->harga_per_gram : 0.0;
     }
@@ -58,6 +59,7 @@ class BahanBaku extends Model
         $latest = $this->formHargas()
             ->where('supplier_id', $this->supplier_id)
             ->orderBy('tanggal_update', 'desc')
+            ->orderBy('id', 'desc')
             ->first();
         return $latest ? (float) $latest->harga_satuan : 0.0;
     }
@@ -67,6 +69,7 @@ class BahanBaku extends Model
         $latest = $this->formHargas()
             ->where('supplier_id', $this->supplier_id)
             ->orderBy('tanggal_update', 'desc')
+            ->orderBy('id', 'desc')
             ->first();
         return $latest ? $latest->satuan_harga : $this->satuan;
     }

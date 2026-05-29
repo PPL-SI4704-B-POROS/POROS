@@ -97,7 +97,8 @@
                                             return [
                                                 'nama' => $r->bahanBaku ? ($r->bahanBaku->trashed() ? $r->bahanBaku->nama_bahan . ' (Terhapus)' : ($r->bahanBaku->stok <= 0 ? $r->bahanBaku->nama_bahan . ' (Habis)' : $r->bahanBaku->nama_bahan)) : 'Bahan Tidak Valid',
                                                 'gram' => $r->gramasi_per_porsi,
-                                                'harga_per_gram' => $r->bahanBaku->harga_terbaru ?? 0
+                                                'harga_per_gram' => $r->bahanBaku->harga_terbaru ?? 0,
+                                                'stok_tersedia' => $r->bahanBaku ? $r->bahanBaku->stok : 0
                                             ];
                                         })->values()->toArray(),
                                     ]);
@@ -759,6 +760,7 @@ function openViewScheduleModal(data) {
     let totalGramAll = 0;
     let totalBiayaPerPorsi = 0;
     let totalBiayaAll = 0;
+    let isStockSufficient = true;
     
     data.ingredients.forEach(function(ing) {
         const gram = parseFloat(ing.gram) || 0;
@@ -766,18 +768,22 @@ function openViewScheduleModal(data) {
         const hargaPerGram = parseFloat(ing.harga_per_gram) || 0;
         const biayaPerPorsi = gram * hargaPerGram;
         const totalBiaya = totalG * hargaPerGram;
+        const stokTersedia = parseFloat(ing.stok_tersedia) || 0;
         
+        const isShort = totalG > stokTersedia;
+        if (isShort) isStockSufficient = false;
+
         totalGramPerPorsi += gram;
         totalGramAll += totalG;
         totalBiayaPerPorsi += biayaPerPorsi;
         totalBiayaAll += totalBiaya;
         
         ingHtml += `<tr>
-            <td>${ing.nama}</td>
+            <td>${ing.nama} ${isShort ? '<br><span style="color:#ef4444; font-size:0.7rem; font-weight:700;">(Stok Kurang)</span>' : ''}</td>
             <td style="text-align:right;">${fmtG(gram)}</td>
             <td style="text-align:right;">Rp ${parseFloat(hargaPerGram).toFixed(2).replace(/\.00$/, '')} /g</td>
             <td style="text-align:right;">Rp ${Math.round(biayaPerPorsi).toLocaleString('id-ID')}</td>
-            <td style="text-align:right;">${fmtG(totalG)}</td>
+            <td style="text-align:right; ${isShort ? 'color:#ef4444; font-weight:700;' : ''}">${fmtG(totalG)}</td>
             <td style="text-align:right; font-weight:600; color:#059669;">Rp ${Math.round(totalBiaya).toLocaleString('id-ID')}</td>
         </tr>`;
     });
@@ -790,6 +796,30 @@ function openViewScheduleModal(data) {
         <td style="text-align:right; color:#059669; font-weight:700;">Rp ${Math.round(totalBiayaAll).toLocaleString('id-ID')}</td>
     </tr>`;
     ingBody.innerHTML = ingHtml;
+
+    // Update the actions block based on stock availability
+    if (status === 'Menunggu') {
+        if (isStockSufficient) {
+            actionsDiv.innerHTML = `
+                <form action="/dashboard/schedule/${data.id}/update-status" method="POST">
+                    <input type="hidden" name="_token" value="${csrfToken}">
+                    <input type="hidden" name="status_produksi" value="Memasak">
+                    <button type="submit" class="btn" style="width:100%; background:#10b981; color:white; border:none; padding:0.75rem; border-radius:8px; font-weight:700; cursor:pointer; font-size:0.9rem; transition: background 0.2s;" onmouseover="this.style.background='#059669'" onmouseout="this.style.background='#10b981'">
+                        Mulai Memasak
+                    </button>
+                </form>
+            `;
+        } else {
+            actionsDiv.innerHTML = `
+                <div style="text-align:center; color:#ef4444; font-weight:600; font-size:0.85rem; background:#fef2f2; padding:0.75rem; border-radius:8px; border: 1px solid #fecaca; margin-bottom: 0.75rem;">
+                    Stok bahan baku tidak mencukupi untuk mulai memasak menu ini.
+                </div>
+                <button type="button" class="btn" style="width:100%; background:#9ca3af; color:white; border:none; padding:0.75rem; border-radius:8px; font-weight:700; cursor:not-allowed; font-size:0.9rem;" disabled>
+                    Mulai Memasak
+                </button>
+            `;
+        }
+    }
 
     // --- Nutrition Table ---
     const nutBody = document.getElementById('viewNutritionBody');
