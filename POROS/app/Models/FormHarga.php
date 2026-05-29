@@ -27,15 +27,15 @@ class FormHarga extends Model
 
     public function getHargaPerGramAttribute()
     {
-        $satuan = strtolower($this->satuan_harga);
+        $satuan = trim(strtolower($this->satuan_harga));
         
         // Konversi kg & liter (dibagi 1000 untuk dapat harga per gram/ml)
-        if ($satuan === 'kg' || $satuan === 'liter' || $satuan === 'l') {
+        if (in_array($satuan, ['kg', 'kilogram', 'kilo', 'liter', 'l'])) {
             return (float) ($this->harga_satuan / 1000);
         }
         
         // Konversi kemasan 100g & 100ml
-        if ($satuan === '100g' || $satuan === '100ml') {
+        if (in_array($satuan, ['100g', '100ml', '100 gram'])) {
             return (float) ($this->harga_satuan / 100);
         }
         
