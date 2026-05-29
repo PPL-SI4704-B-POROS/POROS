@@ -53,6 +53,52 @@ class BahanBaku extends Model
         return $latest ? (float) $latest->harga_per_gram : 0.0;
     }
 
+    public function getHargaSatuanTerbaruAttribute()
+    {
+        $latest = $this->formHargas()
+            ->where('supplier_id', $this->supplier_id)
+            ->orderBy('tanggal_update', 'desc')
+            ->first();
+        return $latest ? (float) $latest->harga_satuan : 0.0;
+    }
+
+    public function getSatuanHargaTerbaruAttribute()
+    {
+        $latest = $this->formHargas()
+            ->where('supplier_id', $this->supplier_id)
+            ->orderBy('tanggal_update', 'desc')
+            ->first();
+        return $latest ? $latest->satuan_harga : $this->satuan;
+    }
+
+    public function getStokFormattedAttribute()
+    {
+        $stok = $this->stok;
+        $satuan = strtolower(trim($this->satuan));
+        
+        if ($satuan === 'gram' && $stok >= 1000) {
+            return ($stok / 1000) . ' kg';
+        }
+        if ($satuan === 'ml' && $stok >= 1000) {
+            return ($stok / 1000) . ' liter';
+        }
+        return $stok . ' ' . $this->satuan;
+    }
+
+    public function getStokMinimalFormattedAttribute()
+    {
+        $stok = $this->stok_minimal;
+        $satuan = strtolower(trim($this->satuan));
+        
+        if ($satuan === 'gram' && $stok >= 1000) {
+            return ($stok / 1000) . ' kg';
+        }
+        if ($satuan === 'ml' && $stok >= 1000) {
+            return ($stok / 1000) . ' liter';
+        }
+        return $stok . ' ' . $this->satuan;
+    }
+
     // Accessors for Nutrition Data via KatalogPangan
     public function getEnergiPer100gAttribute()
     {

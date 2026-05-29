@@ -74,9 +74,9 @@
                                     $totalKalsium = 0;
                                     $totalBesi = 0;
                                     foreach($firstSch->menu->reseps as $r) {
-                                        $totalSerat += $r->bahanBaku->serat_per_gram * $r->gramasi_per_porsi;
-                                        $totalKalsium += $r->bahanBaku->kalsium_per_gram * $r->gramasi_per_porsi;
-                                        $totalBesi += $r->bahanBaku->besi_per_gram * $r->gramasi_per_porsi;
+                                        $totalSerat += ($r->bahanBaku->serat_per_gram ?? 0) * $r->gramasi_per_porsi;
+                                        $totalKalsium += ($r->bahanBaku->kalsium_per_gram ?? 0) * $r->gramasi_per_porsi;
+                                        $totalBesi += ($r->bahanBaku->besi_per_gram ?? 0) * $r->gramasi_per_porsi;
                                     }
 
                                     $viewData = json_encode([
@@ -95,7 +95,7 @@
                                         'total_modal' => $firstSch->harga_total_modal,
                                         'ingredients' => $firstSch->menu->reseps->map(function($r) {
                                             return [
-                                                'nama' => $r->bahanBaku->nama_bahan, 
+                                                'nama' => $r->bahanBaku ? ($r->bahanBaku->trashed() ? $r->bahanBaku->nama_bahan . ' (Terhapus)' : ($r->bahanBaku->stok <= 0 ? $r->bahanBaku->nama_bahan . ' (Habis)' : $r->bahanBaku->nama_bahan)) : 'Bahan Tidak Valid',
                                                 'gram' => $r->gramasi_per_porsi,
                                                 'harga_per_gram' => $r->bahanBaku->harga_terbaru ?? 0
                                             ];
@@ -107,11 +107,16 @@
                                 @if($firstSch->menu)
                                 <button type="button" class="btn-view" onclick='openViewScheduleModal({!! htmlspecialchars($viewData, ENT_QUOTES, "UTF-8") !!})'>👁 View</button>
                                 @endif
-                                <button type="button" class="btn-edit" onclick="openEditScheduleModal('{{ $firstSch->id }}', '{{ $key }}', '{{ $firstSch->menu_id }}', '{{ $firstSch->total_target_porsi }}')">✏️ Edit</button>
-                                <form action="{{ route('schedule.destroy', $firstSch->id) }}" method="POST" style="display:inline;" onsubmit="return confirm('Hapus jadwal ini?')">
-                                    @csrf @method('DELETE')
-                                    <button type="submit" class="btn-del">🗑️ Hapus</button>
-                                </form>
+                                @if($firstSch->status_produksi === 'Menunggu')
+                                    <button type="button" class="btn-edit" onclick="openEditScheduleModal('{{ $firstSch->id }}', '{{ $key }}', '{{ $firstSch->menu_id }}', '{{ $firstSch->total_target_porsi }}')">✏️ Edit</button>
+                                    <form action="{{ route('schedule.destroy', $firstSch->id) }}" method="POST" style="display:inline;" onsubmit="return confirm('Hapus jadwal ini?')">
+                                        @csrf @method('DELETE')
+                                        <button type="submit" class="btn-del">🗑️ Hapus</button>
+                                    </form>
+                                @else
+                                    <button type="button" class="btn-edit" style="text-decoration: line-through; opacity: 0.5; cursor: not-allowed;" disabled>✏️ Edit</button>
+                                    <button type="button" class="btn-del" style="text-decoration: line-through; opacity: 0.5; cursor: not-allowed;" disabled>🗑️ Hapus</button>
+                                @endif
                             </div>
                         @else
                             <button class="add-menu-link" onclick="openScheduleModal('{{ $key }}')">+ Add Menu</button>
@@ -159,9 +164,26 @@
                     </div>
 
                     <div class="portion-info">
-                        <div class="p-row"><span>Berat / 1 porsi</span><span>{{ number_format($beratPerPorsi, 0) }} g</span></div>
+                        <div class="p-row"><span>Berat / 1 porsi</span><span>{{ number_format($beratPerPorsi, 0) }} g/ml</span></div>
                         @foreach($menu->reseps as $r)
-                        <div class="p-row" style="font-size:0.75rem;"><span>&nbsp;&bull; {{ $r->bahanBaku->nama_bahan }}</span><span>{{ number_format($r->gramasi_per_porsi, 0) }} g</span></div>
+                        <div class="p-row" style="font-size:0.75rem;">
+                            <span>
+                                &nbsp;&bull; 
+                                @if(!$r->bahanBaku)
+                                    <span style="text-decoration: line-through; color: #9ca3af;">Bahan Tidak Valid</span>
+                                    <span style="color: #ef4444; font-weight: 700; margin-left: 2px;">(Terhapus)</span>
+                                @elseif($r->bahanBaku->trashed())
+                                    <span style="text-decoration: line-through; color: #9ca3af;">{{ $r->bahanBaku->nama_bahan }}</span>
+                                    <span style="color: #ef4444; font-weight: 700; margin-left: 2px;">(Terhapus)</span>
+                                @elseif($r->bahanBaku->stok <= 0)
+                                    <span style="text-decoration: line-through; color: #9ca3af;">{{ $r->bahanBaku->nama_bahan }}</span>
+                                    <span style="color: #f59e0b; font-weight: 700; margin-left: 2px;">(Habis)</span>
+                                @else
+                                    {{ $r->bahanBaku->nama_bahan }}
+                                @endif
+                            </span>
+                            <span>{{ number_format($r->gramasi_per_porsi, 0) }} g/ml</span>
+                        </div>
                         @endforeach
                     </div>
 
@@ -170,9 +192,9 @@
                         $totalKalsium = 0;
                         $totalBesi = 0;
                         foreach($menu->reseps as $r) {
-                            $totalSerat += $r->bahanBaku->serat_per_gram * $r->gramasi_per_porsi;
-                            $totalKalsium += $r->bahanBaku->kalsium_per_gram * $r->gramasi_per_porsi;
-                            $totalBesi += $r->bahanBaku->besi_per_gram * $r->gramasi_per_porsi;
+                            $totalSerat += ($r->bahanBaku->serat_per_gram ?? 0) * $r->gramasi_per_porsi;
+                            $totalKalsium += ($r->bahanBaku->kalsium_per_gram ?? 0) * $r->gramasi_per_porsi;
+                            $totalBesi += ($r->bahanBaku->besi_per_gram ?? 0) * $r->gramasi_per_porsi;
                         }
 
                         $menuData = [
@@ -187,7 +209,7 @@
                             "modal_per_porsi" => $menu->harga_modal_per_porsi,
                             "ingredients" => $menu->reseps->map(function($r) {
                                 return [
-                                    "nama" => $r->bahanBaku->nama_bahan, 
+                                    "nama" => $r->bahanBaku ? ($r->bahanBaku->trashed() ? $r->bahanBaku->nama_bahan . ' (Terhapus)' : ($r->bahanBaku->stok <= 0 ? $r->bahanBaku->nama_bahan . ' (Habis)' : $r->bahanBaku->nama_bahan)) : 'Bahan Tidak Valid',
                                     "gram" => $r->gramasi_per_porsi,
                                     "harga_per_gram" => $r->bahanBaku->harga_terbaru ?? 0,
                                     "subtotal" => $r->gramasi_per_porsi * ($r->bahanBaku->harga_terbaru ?? 0)
@@ -235,7 +257,8 @@
                 <div id="ingredientRows">
                     <div class="ingredient-row" style="display:flex;gap:0.5rem;margin-bottom:0.5rem;align-items:center;">
                         <div class="searchable-select" data-name="ingredients[0][bahan_id]"></div>
-                        <input type="number" step="0.01" name="ingredients[0][gramasi]" class="f-input" placeholder="gram" required style="flex:1;min-width:80px;">
+                        <input type="number" step="0.01" name="ingredients[0][gramasi]" class="f-input" placeholder="gram / ml" required style="flex:1;min-width:80px;">
+                        <button type="button" onclick="this.parentElement.remove()" style="background:none;border:none;color:#ef4444;cursor:pointer;font-size:1.2rem;padding:0.25rem;">&times;</button>
                     </div>
                 </div>
                 <button type="button" onclick="addIngredientRow()" style="background:#f3f4f6;border:none;padding:0.5rem 0.75rem;border-radius:8px;font-size:0.75rem;cursor:pointer;font-weight:600;color:#374151;">+ Tambah Bahan</button>
@@ -322,14 +345,24 @@
                 <select name="menu_id" id="scheduleMenuSelect" class="f-select" required onchange="updatePortionPreview()">
                     <option value="">-- Pilih Menu --</option>
                     @foreach($menus as $m)
+                    @php
+                        $isUnavailable = false;
+                        foreach($m->reseps as $r) {
+                            if(!$r->bahanBaku || $r->bahanBaku->trashed() || $r->bahanBaku->stok <= 0) { 
+                                $isUnavailable = true; 
+                                break; 
+                            }
+                        }
+                    @endphp
                     <option value="{{ $m->id }}"
+                        {{ $isUnavailable ? 'disabled' : '' }}
                         data-berat="{{ $m->reseps->sum('gramasi_per_porsi') }}"
                         data-kcal="{{ round($m->total_kalori) }}"
                         data-protein="{{ round($m->total_protein) }}"
                         data-karbo="{{ round($m->total_karbohidrat) }}"
                         data-lemak="{{ round($m->total_lemak) }}"
                         data-modal="{{ $m->harga_modal_per_porsi }}">
-                        {{ $m->nama_menu }}
+                        {{ $m->nama_menu }} {{ $isUnavailable ? '(Ada bahan yang habis)' : '' }}
                     </option>
                     @endforeach
                 </select>
@@ -371,11 +404,21 @@
                 <select name="menu_id" id="editMenuSelect" class="f-select" required onchange="updateEditPreview()">
                     <option value="">-- Pilih Menu --</option>
                     @foreach($menus as $m)
+                    @php
+                        $isUnavailable = false;
+                        foreach($m->reseps as $r) {
+                            if(!$r->bahanBaku || $r->bahanBaku->trashed() || $r->bahanBaku->stok <= 0) { 
+                                $isUnavailable = true; 
+                                break; 
+                            }
+                        }
+                    @endphp
                     <option value="{{ $m->id }}"
+                        {{ $isUnavailable ? 'disabled' : '' }}
                         data-berat="{{ $m->reseps->sum('gramasi_per_porsi') }}"
                         data-kcal="{{ round($m->total_kalori) }}"
                         data-modal="{{ $m->harga_modal_per_porsi }}">
-                        {{ $m->nama_menu }}
+                        {{ $m->nama_menu }} {{ $isUnavailable ? '(Ada bahan yang habis)' : '' }}
                     </option>
                     @endforeach
                 </select>
@@ -573,11 +616,19 @@ function addIngredientRow() {
     gramInput.step = '0.01';
     gramInput.name = `ingredients[${ic}][gramasi]`;
     gramInput.className = 'f-input';
-    gramInput.placeholder = 'gram';
+    gramInput.placeholder = 'gram / ml';
     gramInput.required = true;
     gramInput.style.cssText = 'flex:1;min-width:80px;';
+    
+    const removeBtn = document.createElement('button');
+    removeBtn.type = 'button';
+    removeBtn.innerHTML = '&times;';
+    removeBtn.style.cssText = 'background:none;border:none;color:#ef4444;cursor:pointer;font-size:1.2rem;padding:0.25rem;';
+    removeBtn.onclick = function() { r.remove(); };
+    
     r.appendChild(ssDiv);
     r.appendChild(gramInput);
+    r.appendChild(removeBtn);
     c.appendChild(r);
     createSearchableSelect(ssDiv, `ingredients[${ic}][bahan_id]`, '');
     ic++;
@@ -624,7 +675,7 @@ function addEditIngredientRow(bahanId, gramasi) {
     gramInput.step = '0.01';
     gramInput.name = `ingredients[${editIc}][gramasi]`;
     gramInput.className = 'f-input';
-    gramInput.placeholder = 'gram';
+    gramInput.placeholder = 'gram / ml';
     gramInput.required = true;
     gramInput.style.cssText = 'flex:1;min-width:80px;';
     gramInput.value = gramasi || '';
@@ -642,8 +693,8 @@ function addEditIngredientRow(bahanId, gramasi) {
 }
 
 function fmtG(g) {
-    if (g >= 1000) return (g / 1000).toFixed(1).replace(/\.0$/, '') + ' kg';
-    return Math.round(g) + ' g';
+    if (g >= 1000) return (g / 1000).toFixed(1).replace(/\.0$/, '') + ' kg/L';
+    return Math.round(g) + ' g/ml';
 }
 
 function openViewScheduleModal(data) {
@@ -753,9 +804,9 @@ function openViewScheduleModal(data) {
     ];
     let nutHtml = '';
     nutrients.forEach(function(n) {
-        if (n.val > 0) {
-            const perPorsi = Math.round(n.val * 10) / 10;
-            const total = Math.round(n.val * data.porsi * 10) / 10;
+        if (n.val >= 0) {
+            const perPorsi = Math.round((n.val || 0) * 10) / 10;
+            const total = Math.round((n.val || 0) * data.porsi * 10) / 10;
             nutHtml += `<tr><td>${n.label}</td><td style="text-align:right;">${perPorsi} ${n.unit}</td><td style="text-align:right;">${total.toLocaleString()} ${n.unit}</td></tr>`;
         }
     });
@@ -780,8 +831,8 @@ function openViewMenuLibraryModal(data) {
     ];
     let nutHtml = '';
     nutrients.forEach(function(n) {
-        if (n.val > 0) {
-            const perPorsi = Math.round(n.val * 10) / 10;
+        if (n.val >= 0) {
+            const perPorsi = Math.round((n.val || 0) * 10) / 10;
             nutHtml += `<tr><td style="padding:0.4rem 0;">${n.label}</td><td style="text-align:right; font-weight:600; color:#111827;">${perPorsi} ${n.unit}</td></tr>`;
         }
     });
