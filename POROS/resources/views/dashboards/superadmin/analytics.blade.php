@@ -64,6 +64,7 @@
         margin-bottom: 0.25rem;
     }
     .scorecard.good h3 { color: #10b981; }
+    .scorecard.warning h3 { color: #f59e0b; }
     .scorecard.bad h3 { color: #ef4444; }
     .scorecard p {
         font-size: 0.85rem;
@@ -206,14 +207,18 @@
                     <div style="width: 14px; height: 14px; background: #10b981; border-radius: 4px;"></div>
                     Status Gizi Scorecard
                 </div>
-                <div style="display: flex; flex-direction: column; gap: 1rem; flex: 1; justify-content: center;">
-                    <div class="scorecard good">
-                        <h3>{{ $giziBaik }}</h3>
-                        <p>Gizi Baik (≥ 20kg)</p>
+                <div style="display: flex; flex-direction: column; gap: 0.75rem; flex: 1; justify-content: center;">
+                    <div class="scorecard good" style="padding: 0.85rem;">
+                        <h3 style="font-size: 1.6rem; margin-bottom: 0px;">{{ $giziNormal }}</h3>
+                        <p style="font-size: 0.75rem; margin-bottom: 0px;">Status Gizi Normal</p>
                     </div>
-                    <div class="scorecard bad">
-                        <h3>{{ $giziKurang }}</h3>
-                        <p>Gizi Kurang (< 20kg)</p>
+                    <div class="scorecard warning" style="padding: 0.85rem;">
+                        <h3 style="font-size: 1.6rem; margin-bottom: 0px;">{{ $giziKurang }}</h3>
+                        <p style="font-size: 0.75rem; margin-bottom: 0px;">Status Gizi Kurang</p>
+                    </div>
+                    <div class="scorecard bad" style="padding: 0.85rem;">
+                        <h3 style="font-size: 1.6rem; margin-bottom: 0px;">{{ $giziLebih }}</h3>
+                        <p style="font-size: 0.75rem; margin-bottom: 0px;">Status Gizi Lebih / Obesitas</p>
                     </div>
                 </div>
             </div>
@@ -235,7 +240,7 @@
                     <div style="width: 14px; height: 14px; background: #ef4444; border-radius: 50%;"></div>
                     Evaluasi Sisa Makanan
                 </div>
-                <div style="height: 300px; flex: 1;">
+                <div style="height: 300px; flex: 1; display: flex; align-items: center; justify-content: center; position: relative;">
                     <canvas id="wasteChart"></canvas>
                 </div>
             </div>
@@ -271,19 +276,26 @@
     const bulananLabels = Object.keys(biayaBulananData);
     const bulananTotals = Object.values(biayaBulananData);
 
-    // 1. Chart Tren Biaya Bulanan
-    const biayaBulananChart = new Chart(document.getElementById('biayaBulananChart'), {
+    // 1. Chart Tren Biaya Bulanan (Gradients & Rp Formatting)
+    const biayaBulananCtx = document.getElementById('biayaBulananChart').getContext('2d');
+    const biayaBulananGrad = biayaBulananCtx.createLinearGradient(0, 0, 0, 300);
+    biayaBulananGrad.addColorStop(0, 'rgba(59, 130, 246, 0.85)');
+    biayaBulananGrad.addColorStop(1, 'rgba(59, 130, 246, 0.15)');
+
+    const biayaBulananChart = new Chart(biayaBulananCtx, {
         type: 'bar',
         data: {
             labels: bulananLabels,
             datasets: [{
                 label: 'Total Belanja (Rp)',
                 data: bulananTotals,
-                backgroundColor: 'rgba(59, 130, 246, 0.8)',
+                backgroundColor: biayaBulananGrad,
+                borderColor: 'rgba(59, 130, 246, 1)',
+                borderWidth: 1,
                 borderRadius: 6,
                 barThickness: 35,
                 trendlineLinear: {
-                    style: "rgba(239, 68, 68, 0.8)",
+                    style: "rgba(239, 68, 68, 0.85)",
                     lineStyle: "dotted",
                     width: 2
                 }
@@ -295,12 +307,16 @@
             plugins: { 
                 legend: { display: false },
                 tooltip: {
+                    padding: 12,
+                    backgroundColor: 'rgba(12, 30, 53, 0.95)',
+                    titleFont: { size: 13, weight: 'bold' },
+                    bodyFont: { size: 12 },
                     callbacks: {
                         label: function(context) {
-                            return 'Rp ' + context.parsed.y.toLocaleString('id-ID');
+                            return 'Total: Rp ' + context.parsed.y.toLocaleString('id-ID');
                         },
                         afterLabel: function() {
-                            return 'Klik untuk melihat detail bahan baku';
+                            return 'Klik untuk detail bahan baku';
                         }
                     }
                 }
@@ -308,7 +324,9 @@
             scales: {
                 y: { 
                     grid: { borderDash: [4, 4], drawBorder: false },
-                    ticks: { callback: value => 'Rp ' + value.toLocaleString('id-ID') }
+                    ticks: { 
+                        callback: value => 'Rp ' + (value >= 1000000 ? (value / 1000000) + 'jt' : value.toLocaleString('id-ID'))
+                    }
                 },
                 x: { grid: { display: false } }
             },
@@ -322,8 +340,12 @@
         }
     });
 
-    // 2. Chart Distribusi Biaya per Bahan Baku
-    const detailChartCtx = document.getElementById('biayaChart');
+    // 2. Chart Distribusi Biaya per Bahan Baku (Gradients & Rp Formatting)
+    const detailChartCtx = document.getElementById('biayaChart').getContext('2d');
+    const detailBiayaGrad = detailChartCtx.createLinearGradient(0, 0, 0, 300);
+    detailBiayaGrad.addColorStop(0, 'rgba(245, 158, 11, 0.85)');
+    detailBiayaGrad.addColorStop(1, 'rgba(245, 158, 11, 0.15)');
+
     let biayaDetailChart = new Chart(detailChartCtx, {
         type: 'bar',
         data: {
@@ -331,7 +353,9 @@
             datasets: [{
                 label: 'Total Belanja (Rp)',
                 data: biayaGlobalData,
-                backgroundColor: '#f59e0b',
+                backgroundColor: detailBiayaGrad,
+                borderColor: 'rgba(245, 158, 11, 1)',
+                borderWidth: 1,
                 borderRadius: 6,
                 barThickness: 35
             }]
@@ -339,11 +363,24 @@
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
+            plugins: { 
+                legend: { display: false },
+                tooltip: {
+                    padding: 12,
+                    backgroundColor: 'rgba(12, 30, 53, 0.95)',
+                    callbacks: {
+                        label: function(context) {
+                            return 'Belanja: Rp ' + context.parsed.y.toLocaleString('id-ID');
+                        }
+                    }
+                }
+            },
             scales: {
                 y: { 
                     grid: { borderDash: [4, 4], drawBorder: false },
-                    ticks: { callback: value => 'Rp ' + value.toLocaleString('id-ID') }
+                    ticks: { 
+                        callback: value => 'Rp ' + (value >= 1000000 ? (value / 1000000) + 'jt' : value.toLocaleString('id-ID'))
+                    }
                 },
                 x: { grid: { display: false } }
             }
@@ -374,19 +411,30 @@
         this.style.display = 'none';
     });
 
-    // Trend Gizi Chart (PBI-35)
-    new Chart(document.getElementById('trendGiziChart'), {
+    // Trend Gizi Chart (PBI-35) - Monthly aggregated area chart with beautiful tooltips
+    const trendGiziCtx = document.getElementById('trendGiziChart').getContext('2d');
+    const tbGrad = trendGiziCtx.createLinearGradient(0, 0, 0, 300);
+    tbGrad.addColorStop(0, 'rgba(59, 130, 246, 0.25)');
+    tbGrad.addColorStop(1, 'rgba(59, 130, 246, 0.0)');
+
+    const bbGrad = trendGiziCtx.createLinearGradient(0, 0, 0, 300);
+    bbGrad.addColorStop(0, 'rgba(16, 185, 129, 0.25)');
+    bbGrad.addColorStop(1, 'rgba(16, 185, 129, 0.0)');
+
+    new Chart(trendGiziCtx, {
         type: 'line',
         data: {
-            labels: {!! json_encode($trendGizi->pluck('tanggal_ukur')->map(fn($date) => \Carbon\Carbon::parse($date)->format('d M'))) !!},
+            labels: {!! json_encode($trendGizi->pluck('tanggal_ukur')->map(fn($date) => \Carbon\Carbon::parse($date)->format('M y'))) !!},
             datasets: [
                 {
                     label: 'Rata-rata TB (cm)',
                     data: {!! json_encode($trendGizi->pluck('avg_tb')) !!},
                     borderColor: '#3b82f6',
-                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                    borderWidth: 2,
-                    tension: 0.3,
+                    backgroundColor: tbGrad,
+                    borderWidth: 3,
+                    pointBackgroundColor: '#3b82f6',
+                    pointHoverRadius: 7,
+                    tension: 0.35,
                     fill: true,
                     yAxisID: 'y1'
                 },
@@ -394,9 +442,11 @@
                     label: 'Rata-rata BB (kg)',
                     data: {!! json_encode($trendGizi->pluck('avg_bb')) !!},
                     borderColor: '#10b981',
-                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                    borderWidth: 2,
-                    tension: 0.3,
+                    backgroundColor: bbGrad,
+                    borderWidth: 3,
+                    pointBackgroundColor: '#10b981',
+                    pointHoverRadius: 7,
+                    tension: 0.35,
                     fill: true,
                     yAxisID: 'y'
                 }
@@ -410,7 +460,27 @@
                 intersect: false,
             },
             plugins: {
-                legend: { position: 'top', labels: { usePointStyle: true, boxWidth: 8 } }
+                legend: { position: 'top', labels: { usePointStyle: true, boxWidth: 8 } },
+                tooltip: {
+                    padding: 12,
+                    backgroundColor: 'rgba(12, 30, 53, 0.95)',
+                    callbacks: {
+                        label: function(context) {
+                            let label = context.dataset.label || '';
+                            if (label) {
+                                label += ': ';
+                            }
+                            if (context.parsed.y !== null) {
+                                if (context.dataset.yAxisID === 'y1') {
+                                    label += context.parsed.y.toFixed(1).replace('.', ',') + ' cm';
+                                } else {
+                                    label += context.parsed.y.toFixed(1).replace('.', ',') + ' kg';
+                                }
+                            }
+                            return label;
+                        }
+                    }
+                }
             },
             scales: {
                 y: { 
@@ -418,29 +488,82 @@
                     display: true,
                     position: 'left',
                     grid: { borderDash: [4, 4], drawBorder: false },
-                    title: { display: true, text: 'Berat (kg)' }
+                    title: { display: true, text: 'Berat (kg)', font: { weight: 'bold' } }
                 },
                 y1: {
                     type: 'linear',
                     display: true,
                     position: 'right',
                     grid: { drawOnChartArea: false },
-                    title: { display: true, text: 'Tinggi (cm)' }
+                    title: { display: true, text: 'Tinggi (cm)', font: { weight: 'bold' } }
                 },
                 x: { grid: { display: false } }
             }
         }
     });
 
-    // Waste Chart (PBI-36)
+    // Custom plugin to draw text exactly at the center of the doughnut chart area
+    const centerTextPlugin = {
+        id: 'centerText',
+        afterDraw: function(chart) {
+            try {
+                if (chart.config.type !== 'doughnut') return;
+                if (!chart.chartArea) return;
+                
+                const ctx = chart.ctx;
+                
+                // Get center coordinates of the doughnut chart area (excluding legend space)
+                const x = (chart.chartArea.left + chart.chartArea.right) / 2;
+                const y = (chart.chartArea.top + chart.chartArea.bottom) / 2;
+
+                // Calculate visible total dynamically
+                const dataset = chart.data.datasets[0];
+                if (!dataset || !dataset.data) return;
+                
+                let visibleTotal = 0;
+                for (let i = 0; i < dataset.data.length; i++) {
+                    let isVisible = true;
+                    if (typeof chart.getDataVisibility === 'function') {
+                        isVisible = chart.getDataVisibility(i);
+                    }
+                    if (isVisible) {
+                        visibleTotal += parseFloat(dataset.data[i]) || 0;
+                    }
+                }
+
+                ctx.save();
+                
+                // Draw Value (e.g. 331,8 kg)
+                ctx.font = "bold 1.55rem 'Plus Jakarta Sans', sans-serif";
+                ctx.fillStyle = "#0c1e35";
+                ctx.textBaseline = "middle";
+                ctx.textAlign = "center";
+                const textValue = visibleTotal.toFixed(1).replace('.', ',') + " kg";
+                ctx.fillText(textValue, x, y - 8);
+                
+                // Draw Label (TOTAL SISA)
+                ctx.font = "bold 0.7rem 'Plus Jakarta Sans', sans-serif";
+                ctx.fillStyle = "#6b7280";
+                const textLabel = "TOTAL SISA";
+                ctx.fillText(textLabel, x, y + 14);
+                
+                ctx.restore();
+            } catch (err) {
+                console.error("Error in centerTextPlugin:", err);
+            }
+        }
+    };
+
+    // Waste Chart (PBI-36) - Doughnut based on volume kg
     new Chart(document.getElementById('wasteChart'), {
         type: 'doughnut',
+        plugins: [centerTextPlugin],
         data: {
             labels: {!! json_encode($wasteData->pluck('keterangan')) !!},
             datasets: [{
-                data: {!! json_encode($wasteData->pluck('total')) !!},
+                data: {!! json_encode($wasteData->pluck('total_kg')) !!},
                 backgroundColor: ['#ff6b00', '#ef4444', '#f59e0b', '#10b981', '#94a3b8'],
-                hoverOffset: 20,
+                hoverOffset: 15,
                 borderWidth: 4,
                 borderColor: '#ffffff'
             }]
@@ -448,22 +571,46 @@
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            cutout: '70%',
+            cutout: '72%',
             plugins: {
-                legend: { position: 'right', labels: { padding: 20, usePointStyle: true } }
+                legend: { 
+                    position: 'right', 
+                    labels: { 
+                        padding: 15, 
+                        usePointStyle: true,
+                        font: { size: 11, weight: '600' }
+                    } 
+                },
+                tooltip: {
+                    padding: 12,
+                    backgroundColor: 'rgba(12, 30, 53, 0.95)',
+                    callbacks: {
+                        label: function(context) {
+                            const value = context.parsed;
+                            return ' ' + context.label + ': ' + Number(value).toFixed(1).replace('.', ',') + ' kg';
+                        }
+                    }
+                }
             }
         }
     });
 
-    // Top Menu Chart (PBI-36)
-    new Chart(document.getElementById('topMenuChart'), {
+    // Top Menu Chart (PBI-36) - Volume-based bar chart with horizontal gradient
+    const topMenuCtx = document.getElementById('topMenuChart').getContext('2d');
+    const topMenuGrad = topMenuCtx.createLinearGradient(0, 0, 300, 0);
+    topMenuGrad.addColorStop(0, 'rgba(239, 68, 68, 0.85)');
+    topMenuGrad.addColorStop(1, 'rgba(239, 68, 68, 0.15)');
+
+    new Chart(topMenuCtx, {
         type: 'bar',
         data: {
             labels: {!! json_encode($topMenus->pluck('nama_menu')) !!},
             datasets: [{
-                label: 'Frekuensi Sisa',
-                data: {!! json_encode($topMenus->pluck('frekuensi')) !!},
-                backgroundColor: '#f59e0b',
+                label: 'Total Sisa (kg)',
+                data: {!! json_encode($topMenus->pluck('total_waste')) !!},
+                backgroundColor: topMenuGrad,
+                borderColor: 'rgba(239, 68, 68, 1)',
+                borderWidth: 1,
                 borderRadius: 4,
                 barThickness: 20
             }]
@@ -472,11 +619,23 @@
             indexAxis: 'y',
             responsive: true,
             maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
+            plugins: { 
+                legend: { display: false },
+                tooltip: {
+                    padding: 12,
+                    backgroundColor: 'rgba(12, 30, 53, 0.95)',
+                    callbacks: {
+                        label: function(context) {
+                            return ' Total Sisa: ' + Number(context.parsed.x).toFixed(1).replace('.', ',') + ' kg';
+                        }
+                    }
+                }
+            },
             scales: {
                 x: { 
                     grid: { borderDash: [4, 4], drawBorder: false },
-                    ticks: { precision: 0 }
+                    ticks: { precision: 1 },
+                    title: { display: true, text: 'Berat Sisa (kg)', font: { weight: 'bold' } }
                 },
                 y: { grid: { display: false } }
             }

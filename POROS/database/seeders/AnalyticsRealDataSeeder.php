@@ -31,6 +31,11 @@ class AnalyticsRealDataSeeder extends Seeder
             $bahanIds[] = DB::table('bahan_bakus')->insertGetId(['nama_bahan' => 'Beras', 'stok' => 10, 'satuan' => 'kg', 'created_at' => now(), 'updated_at' => now()]);
         }
 
+        $dapurRole = DB::table('roles')->where('nama_role', 'dapur')->first();
+        $dapurUserIds = $dapurRole
+            ? DB::table('users')->where('role_id', $dapurRole->id)->pluck('id')->toArray()
+            : [];
+
         // Limit bahan to a few so the chart looks good (not 1000 items)
         $selectedBahanIds = array_slice((array) $bahanIds, 0, 8);
 
@@ -44,6 +49,7 @@ class AnalyticsRealDataSeeder extends Seeder
                 $biayaData[] = [
                     'bahan_baku_id' => $bahan_id,
                     'supplier_id' => $supplierIds[array_rand($supplierIds)],
+                    'dapur_id' => ! empty($dapurUserIds) ? $dapurUserIds[array_rand($dapurUserIds)] : null,
                     'jumlah_beli' => rand(10, 50),
                     'total_harga' => rand(100000, 1000000),
                     'tanggal_belanja' => $date,
@@ -61,6 +67,7 @@ class AnalyticsRealDataSeeder extends Seeder
                 $biayaData[] = [
                     'bahan_baku_id' => $bahan_id,
                     'supplier_id' => $supplierIds[array_rand($supplierIds)],
+                    'dapur_id' => ! empty($dapurUserIds) ? $dapurUserIds[array_rand($dapurUserIds)] : null,
                     'jumlah_beli' => rand(10, 50),
                     'total_harga' => rand(100000, 1000000),
                     'tanggal_belanja' => $date,
