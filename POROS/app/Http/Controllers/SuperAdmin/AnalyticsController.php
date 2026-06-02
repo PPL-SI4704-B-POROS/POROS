@@ -23,9 +23,12 @@ class AnalyticsController extends Controller
 
         // --- PBI-34: Logic Biaya Belanja ---
         $queryBiaya = BiayaBelanja::query()
-            ->join('bahan_bakus', 'biaya_belanja.bahan_baku_id', '=', 'bahan_bakus.id');
+            ->join('bahan_bakus', 'biaya_belanja.bahan_baku_id', '=', 'bahan_bakus.id')
+            ->whereNull('bahan_bakus.deleted_at');
 
-        // Unit Dapur filter is not applicable to biaya_belanja as there is no user_id column
+        if ($selectedDapur !== 'all') {
+            $queryBiaya->where('biaya_belanja.dapur_id', $selectedDapur);
+        }
 
         if ($startDate && $endDate) {
             $queryBiaya->whereBetween('biaya_belanja.tanggal_belanja', [$startDate, $endDate]);
@@ -60,9 +63,13 @@ class AnalyticsController extends Controller
 
         // Top 3 Supplier
         $querySupplier = BiayaBelanja::query()
-            ->join('suppliers', 'biaya_belanja.supplier_id', '=', 'suppliers.id');
+            ->join('suppliers', 'biaya_belanja.supplier_id', '=', 'suppliers.id')
+            ->whereNull('suppliers.deleted_at');
 
-        // Unit Dapur filter is not applicable to biaya_belanja as there is no user_id column
+        if ($selectedDapur !== 'all') {
+            $querySupplier->where('biaya_belanja.dapur_id', $selectedDapur);
+        }
+
         if ($startDate && $endDate) {
             $querySupplier->whereBetween('biaya_belanja.tanggal_belanja', [$startDate, $endDate]);
         }
@@ -75,7 +82,8 @@ class AnalyticsController extends Controller
 
         // --- PBI-35: Logic Tren BB/TB ---
         $queryAntropometri = Antropometri::query()
-            ->join('siswas', 'antropometris.siswa_id', '=', 'siswas.id');
+            ->join('siswas', 'antropometris.siswa_id', '=', 'siswas.id')
+            ->whereNull('siswas.deleted_at');
 
         if ($selectedSekolah !== 'all') {
             $queryAntropometri->where('siswas.sekolah_id', $selectedSekolah);
@@ -84,18 +92,27 @@ class AnalyticsController extends Controller
             $queryAntropometri->whereBetween('antropometris.tanggal_ukur', [$startDate, $endDate]);
         }
 
-        $trendGizi = $queryAntropometri->select(
-            'antropometris.tanggal_ukur',
-            DB::raw('AVG(antropometris.berat_badan) as avg_bb'),
-            DB::raw('AVG(antropometris.tinggi_badan) as avg_tb')
-        )
-            ->groupBy('antropometris.tanggal_ukur')
-            ->orderBy('antropometris.tanggal_ukur', 'asc')
-            ->get() ?? collect();
+        // Fetch raw records to group by month in memory for a smooth monthly growth trend
+        $rawAntropometri = (clone $queryAntropometri)
+            ->select('antropometris.tanggal_ukur', 'antropometris.berat_badan', 'antropometris.tinggi_badan')
+            ->get();
 
-        // Status Gizi Scorecard
-        $giziBaik = (clone $queryAntropometri)->where('antropometris.berat_badan', '>=', 20)->count();
-        $giziKurang = (clone $queryAntropometri)->where('antropometris.berat_badan', '<', 20)->count();
+        $groupedAntropometri = $rawAntropometri->groupBy(function ($item) {
+            return Carbon::parse($item->tanggal_ukur)->format('Y-m');
+        })->sortKeys();
+
+        $trendGizi = $groupedAntropometri->map(function ($group, $key) {
+            return (object) [
+                'tanggal_ukur' => Carbon::createFromFormat('Y-m', $key)->startOfMonth()->format('Y-m-d'),
+                'avg_bb' => round($group->avg('berat_badan'), 2),
+                'avg_tb' => round($group->avg('tinggi_badan'), 2),
+            ];
+        })->values();
+
+        // Status Gizi Scorecard (Dinamis dari database berdasarkan IMT dan status gizi riil)
+        $giziNormal = (clone $queryAntropometri)->whereIn('antropometris.status_gizi', ['Normal', 'Baik'])->count();
+        $giziKurang = (clone $queryAntropometri)->whereIn('antropometris.status_gizi', ['Kurus', 'Kurang'])->count();
+        $giziLebih = (clone $queryAntropometri)->whereIn('antropometris.status_gizi', ['Gemuk', 'Obesitas'])->count();
 
         // --- PBI-36: Logic Waste ---
         $queryWaste = PlateWaste::query();
@@ -106,16 +123,28 @@ class AnalyticsController extends Controller
             $queryWaste->whereBetween('tanggal', [$startDate, $endDate]);
         }
 
-        $wasteData = (clone $queryWaste)->select('keterangan', DB::raw('COUNT(*) as total'))
+        // Hitung total kg waste per kategori alasan
+        $wasteData = (clone $queryWaste)->select(
+            'keterangan',
+            DB::raw('COUNT(*) as total_frekuensi'),
+            DB::raw('SUM(jumlah_waste) as total_kg')
+        )
             ->whereNotNull('keterangan')
+            ->where('keterangan', '<>', '')
             ->groupBy('keterangan')
             ->get() ?? collect();
 
-        // Top 3 Waste Menu
+        // Total akumulasi sampah makanan
+        $totalWasteKg = (clone $queryWaste)->sum('jumlah_waste') ?? 0;
+
+        // Top 3 Waste Menu berdasarkan volume berat sisa makanan (kg)
         $topWasteMenus = PlateWaste::query()
             ->join('pengirimans', 'plate_wastes.pengiriman_id', '=', 'pengirimans.id')
             ->join('produksi_harians', 'pengirimans.produksi_id', '=', 'produksi_harians.id')
-            ->join('menus', 'produksi_harians.menu_id', '=', 'menus.id');
+            ->join('menus', 'produksi_harians.menu_id', '=', 'menus.id')
+            ->whereNull('pengirimans.deleted_at')
+            ->whereNull('produksi_harians.deleted_at')
+            ->whereNull('menus.deleted_at');
 
         if ($selectedSekolah !== 'all') {
             $topWasteMenus->where('plate_wastes.sekolah_id', $selectedSekolah);
@@ -124,9 +153,9 @@ class AnalyticsController extends Controller
             $topWasteMenus->whereBetween('plate_wastes.tanggal', [$startDate, $endDate]);
         }
 
-        $topMenus = $topWasteMenus->select('menus.nama_menu', DB::raw('COUNT(*) as frekuensi'))
+        $topMenus = $topWasteMenus->select('menus.nama_menu', DB::raw('SUM(plate_wastes.jumlah_waste) as total_waste'))
             ->groupBy('menus.nama_menu')
-            ->orderByDesc('frekuensi')
+            ->orderByDesc('total_waste')
             ->limit(3)
             ->get() ?? collect();
 
@@ -139,8 +168,8 @@ class AnalyticsController extends Controller
 
         return view('dashboards.superadmin.analytics', compact(
             'biayaData', 'biayaBulanan', 'biayaDetailBulanan', 'topSuppliers',
-            'trendGizi', 'giziBaik', 'giziKurang',
-            'wasteData', 'topMenus',
+            'trendGizi', 'giziNormal', 'giziKurang', 'giziLebih',
+            'wasteData', 'totalWasteKg', 'topMenus',
             'daftarDapur', 'daftarSekolah'
         ));
     }
