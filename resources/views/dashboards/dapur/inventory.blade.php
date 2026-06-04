@@ -60,7 +60,7 @@
 
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
                             <div>
-                                <label style="display: block; margin-bottom: 0.5rem; color: #0c1e35; font-weight: 600;">Jml Stok</label>
+                                <label style="display: block; margin-bottom: 0.5rem; color: #0c1e35; font-weight: 600;">Jumlah Stok (Kg)</label>
                                 <input type="number" name="stok" value="{{ old('stok', $bahanBaku->stok ?? '') }}" required 
                                     style="width: 100%; padding: 0.75rem; border: 1px solid #e2e8f0; border-radius: 6px; outline: none;">
                             </div>
@@ -72,8 +72,19 @@
                         </div>
 
                         <div style="margin-bottom: 1.5rem;">
-                            <label style="display: block; margin-bottom: 0.5rem; color: #0c1e35; font-weight: 600;">Satuan (cth: Kg, Liter)</label>
-                            <input type="text" name="satuan" value="{{ old('satuan', $bahanBaku->satuan ?? '') }}" required 
+                            <label style="display: block; margin-bottom: 0.5rem; color: #0c1e35; font-weight: 600;">Satuan Berat/Volume (Wajib)</label>
+                            <select name="satuan" required style="width: 100%; padding: 0.75rem; border: 1px solid #e2e8f0; border-radius: 6px; outline: none; background-color: white;">
+                                <option value="">-- Pilih Satuan --</option>
+                                <option value="kg" {{ (old('satuan', $bahanBaku->satuan ?? '') == 'kg') ? 'selected' : '' }}>kg</option>
+                                <option value="gram" {{ (old('satuan', $bahanBaku->satuan ?? '') == 'gram') ? 'selected' : '' }}>gram</option>
+                                <option value="liter" {{ (old('satuan', $bahanBaku->satuan ?? '') == 'liter') ? 'selected' : '' }}>liter</option>
+                                <option value="ml" {{ (old('satuan', $bahanBaku->satuan ?? '') == 'ml') ? 'selected' : '' }}>ml</option>
+                            </select>
+                        </div>
+
+                        <div style="margin-bottom: 1.5rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; color: #0c1e35; font-weight: 600;">Harga per 1 Satuan (contoh: Harga 1 kg)</label>
+                            <input type="number" name="harga" value="{{ old('harga', isset($bahanBaku) ? $bahanBaku->harga_satuan_terbaru : '') }}" required min="0" step="1" placeholder="Contoh: 40000"
                                 style="width: 100%; padding: 0.75rem; border: 1px solid #e2e8f0; border-radius: 6px; outline: none;">
                         </div>
 
@@ -166,8 +177,8 @@
                                     <tr style="border-bottom: 2px solid #e2e8f0;">
                                         <th style="padding: 0.75rem; color: #0c1e35; font-weight: 600; width: 5%;">No</th>
                                         <th style="padding: 0.75rem; color: #0c1e35; font-weight: 600;">Nama Bahan Baku</th>
-                                        <th style="padding: 0.75rem; color: #0c1e35; font-weight: 600;">Stok</th>
-                                        <th style="padding: 0.75rem; color: #0c1e35; font-weight: 600;">Satuan</th>
+                                        <th style="padding: 0.75rem; color: #0c1e35; font-weight: 600;">Stok & Satuan</th>
+                                        <th style="padding: 0.75rem; color: #0c1e35; font-weight: 600;">Harga (Rp)</th>
                                         <th style="padding: 0.75rem; color: #0c1e35; font-weight: 600; width: 15%; text-align: center;">Aksi</th>
                                     </tr>
                                 </thead>
@@ -176,8 +187,8 @@
                                         <tr style="border-bottom: 1px solid #f1f5f9;">
                                             <td style="padding: 0.75rem;">{{ $index + 1 }}</td>
                                             <td style="padding: 0.75rem; font-weight: 500; color: #0c1e35;">{{ $item->nama_bahan ?? 'Nama tidak ditemukan' }}</td>
-                                            <td style="padding: 0.75rem;">{{ $item->stok }} (Min: {{ $item->stok_minimal }})</td>
-                                            <td style="padding: 0.75rem;">{{ $item->satuan }}</td>
+                                            <td style="padding: 0.75rem;">{{ $item->stok_formatted }} (Min: {{ $item->stok_minimal_formatted }})</td>
+                                            <td style="padding: 0.75rem;">Rp {{ number_format($item->harga_satuan_terbaru, 0, ',', '.') }} / {{ $item->satuan_harga_terbaru }}</td>
                                             <td style="padding: 0.75rem; text-align: center;">
                                                 <a href="{{ route('bahan-bakus.edit', $item->id) }}" style="display: inline-block; padding: 0.3rem 0.6rem; background-color: #f59e0b; color: white; border-radius: 4px; cursor: pointer; font-size: 0.8rem; margin-right: 0.25rem; text-decoration: none;">
                                                     Edit
@@ -193,7 +204,7 @@
                                         </tr>
                                     @empty
                                         <tr>
-                                            <td colspan="5" style="padding: 1.5rem; text-align: center; color: var(--text-muted);">
+                                            <td colspan="6" style="padding: 1.5rem; text-align: center; color: var(--text-muted);">
                                                 Belum ada bahan baku dari supplier ini.
                                             </td>
                                         </tr>

@@ -23,10 +23,16 @@
                 <h1 style="font-size: 1.75rem; font-weight: 800; color: #0c1e35;">Data Siswa</h1>
                 <p style="color: var(--text-muted); font-size: 0.95rem; margin-top: 0.25rem;">Kelola profil siswa dan data kesehatan dasar</p>
             </div>
-            <button onclick="document.getElementById('addSiswaModal').style.display = 'flex'" class="btn btn-primary" style="width: auto; padding: 0.75rem 1.5rem; display: flex; align-items: center; gap: 0.5rem; border-radius: 12px; cursor: pointer;">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                Tambah Siswa
-            </button>
+            <div style="display: flex; gap: 0.75rem;">
+                <button onclick="document.getElementById('importSiswaModal').style.display = 'flex'" class="btn" style="width: auto; padding: 0.75rem 1.5rem; display: flex; align-items: center; gap: 0.5rem; border-radius: 12px; cursor: pointer; background: #f1f5f9; border: 1px solid #e2e8f0; color: #475569; font-weight: 600; transition: all 0.2s;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                    Import CSV
+                </button>
+                <button onclick="document.getElementById('addSiswaModal').style.display = 'flex'" class="btn btn-primary" style="width: auto; padding: 0.75rem 1.5rem; display: flex; align-items: center; gap: 0.5rem; border-radius: 12px; cursor: pointer;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    Tambah Siswa
+                </button>
+            </div>
         </div>
 
         <div class="card" style="border: none; box-shadow: none; padding: 0; background: transparent;">
@@ -37,6 +43,20 @@
                 </div>
             @endif
 
+            @if(session('import_errors'))
+                <div class="error-alert" style="margin-bottom: 1rem; padding: 1rem; background: #fee2e2; color: #b91c1c; border-radius: 12px; font-weight: 500; border: 1px solid #fecaca;">
+                    <div style="font-weight: 700; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                        Beberapa baris gagal diimpor:
+                    </div>
+                    <ul style="margin-left: 1.5rem; margin-top: 0.25rem; list-style-type: disc; font-size: 0.9rem;">
+                        @foreach(session('import_errors') as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
+
             <div class="search-container">
                 <form action="{{ route('sekolah.siswas.index') }}" method="GET" style="flex: 1; position: relative; display: flex; align-items: center;">
                     <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="position: absolute; left: 15px; color: #94a3b8;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
@@ -44,11 +64,14 @@
                 </form>
             </div>
 
-            <table class="user-table">
+            <table class="user-table" id="siswaTable">
                 <thead>
                     <tr>
+                        <th style="width: 40px;">
+                            <input type="checkbox" id="selectAllSiswa" title="Pilih Semua" style="width: 16px; height: 16px; cursor: pointer; accent-color: #ff6b00;">
+                        </th>
                         <th style="width: 250px;">Student Name</th>
-                        <th>NISN & Kelas</th>
+                        <th>NISN &amp; Kelas</th>
                         <th>Alergi</th>
                         <th>Contact</th>
                         <th>Status</th>
@@ -58,6 +81,9 @@
                 <tbody>
                     @forelse($siswas as $siswa)
                         <tr>
+                            <td>
+                                <input type="checkbox" class="siswa-checkbox" value="{{ $siswa->id }}" style="width: 16px; height: 16px; cursor: pointer; accent-color: #ff6b00;">
+                            </td>
                             <td>
                                 <div style="display: flex; align-items: center;">
                                     @php
@@ -141,6 +167,24 @@
         </div>
     </main>
 </div>
+
+<!-- Bulk Delete Bar -->
+<div id="bulkBarSiswa" style="display: none; position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); z-index: 3000; background: #0c1e35; color: white; border-radius: 16px; padding: 1rem 1.5rem; display: none; align-items: center; gap: 1.5rem; box-shadow: 0 8px 32px rgba(0,0,0,0.25); min-width: 380px;">
+    <span id="bulkCountSiswa" style="font-weight: 700; font-size: 0.95rem;">0 siswa dipilih</span>
+    <div style="display: flex; gap: 0.75rem; margin-left: auto;">
+        <button onclick="clearSelectionSiswa()" style="padding: 0.5rem 1rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); background: transparent; color: white; cursor: pointer; font-weight: 600; font-size: 0.85rem;">Batal</button>
+        <button onclick="submitBulkDeleteSiswa()" style="padding: 0.5rem 1rem; border-radius: 8px; background: #ef4444; color: white; border: none; cursor: pointer; font-weight: 700; font-size: 0.85rem; display: flex; align-items: center; gap: 0.5rem;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+            Hapus Terpilih
+        </button>
+    </div>
+</div>
+
+<form id="bulkDeleteSiswaForm" method="POST" action="{{ route('sekolah.siswas.bulk-destroy') }}" style="display: none;">
+    @csrf
+    @method('DELETE')
+    <div id="bulkDeleteSiswaIds"></div>
+</form>
 
 <!-- Modal View Siswa -->
 <div id="viewSiswaModal" class="modal-form-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center;">
@@ -324,6 +368,34 @@
     </div>
 </div>
 
+<div id="importSiswaModal" class="modal-form-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; justify-content: center; align-items: center;">
+    <div class="modal-form-content" style="background: white; border-radius: 20px; padding: 2rem; width: 500px; max-width: 90%; max-height: 90vh; overflow-y: auto; position: relative;">
+        <span onclick="closeModal('importSiswaModal')" class="close-btn" style="position: absolute; right: 20px; top: 20px; font-size: 1.5rem; cursor: pointer; color: #94a3b8;">&times;</span>
+        <h3 style="margin-bottom: 0.5rem; color: #0c1e35;">Import Data Siswa (CSV)</h3>
+        <p style="color: #64748b; font-size: 0.875rem; margin-bottom: 1.5rem;">Unggah file CSV yang berisi data profil siswa. Format kolom harus berupa: <strong>nama, nisn, kelas, kontak, alergi, status</strong>.</p>
+        
+        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 1rem; margin-bottom: 1.5rem;">
+            <div style="font-size: 0.8rem; font-weight: 700; color: #475569; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.05em;">Contoh Struktur CSV:</div>
+            <pre style="font-family: monospace; font-size: 0.8rem; background: #e2e8f0; padding: 0.5rem; border-radius: 6px; overflow-x: auto; color: #334155; margin: 0;">nama,nisn,kelas,kontak,alergi,status
+Budi Santoso,1234567890,7A,08123456789,,Active
+Siti Aminah,0987654321,7B,08234567890,Kacang,Active</pre>
+        </div>
+
+        <form action="{{ route('sekolah.siswas.import') }}" method="POST" enctype="multipart/form-data">
+            @csrf
+            <div style="margin-bottom: 1.5rem;">
+                <label style="display: block; font-weight: 600; color: #334155; margin-bottom: 0.5rem;">Pilih File CSV</label>
+                <input type="file" name="file_csv" accept=".csv,.txt" required style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 10px; background: #f8fafc; cursor: pointer;">
+            </div>
+            
+            <div style="display: flex; gap: 0.75rem; justify-content: flex-end; margin-top: 2rem;">
+                <button type="button" onclick="closeModal('importSiswaModal')" style="padding: 0.75rem 1.5rem; border-radius: 10px; border: 1px solid #d2d6dc; background: white; cursor: pointer; font-weight: 600; color: #475569;">Batal</button>
+                <button type="submit" class="btn btn-primary" style="width: auto; padding: 0.75rem 1.5rem; border-radius: 10px; cursor: pointer; font-weight: 600;">Unggah & Import</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <script>
     function closeModal(id) {
         document.getElementById(id).style.display = 'none';
@@ -373,6 +445,61 @@
         if (event.target.classList.contains('modal-form-overlay') || event.target.classList.contains('confirm-overlay')) {
             event.target.style.display = 'none';
         }
+    }
+
+    // ── Bulk Delete Siswa ──
+    const selectAllSiswa = document.getElementById('selectAllSiswa');
+    const bulkBarSiswa   = document.getElementById('bulkBarSiswa');
+    const bulkCountSiswa = document.getElementById('bulkCountSiswa');
+
+    function getCheckedSiswa() {
+        return [...document.querySelectorAll('.siswa-checkbox:checked')];
+    }
+
+    function updateBulkBarSiswa() {
+        const checked = getCheckedSiswa();
+        if (checked.length > 0) {
+            bulkBarSiswa.style.display = 'flex';
+            bulkCountSiswa.textContent = checked.length + ' siswa dipilih';
+        } else {
+            bulkBarSiswa.style.display = 'none';
+        }
+        const all = document.querySelectorAll('.siswa-checkbox');
+        selectAllSiswa.checked = all.length > 0 && checked.length === all.length;
+        selectAllSiswa.indeterminate = checked.length > 0 && checked.length < all.length;
+    }
+
+    selectAllSiswa.addEventListener('change', function () {
+        document.querySelectorAll('.siswa-checkbox').forEach(cb => cb.checked = this.checked);
+        updateBulkBarSiswa();
+    });
+
+    document.querySelectorAll('.siswa-checkbox').forEach(cb => {
+        cb.addEventListener('change', updateBulkBarSiswa);
+    });
+
+    function clearSelectionSiswa() {
+        document.querySelectorAll('.siswa-checkbox').forEach(cb => cb.checked = false);
+        selectAllSiswa.checked = false;
+        selectAllSiswa.indeterminate = false;
+        bulkBarSiswa.style.display = 'none';
+    }
+
+    function submitBulkDeleteSiswa() {
+        const ids = getCheckedSiswa().map(cb => cb.value);
+        if (ids.length === 0) return;
+        if (!confirm(ids.length + ' siswa akan dihapus. Lanjutkan?')) return;
+
+        const container = document.getElementById('bulkDeleteSiswaIds');
+        container.innerHTML = '';
+        ids.forEach(id => {
+            const input = document.createElement('input');
+            input.type  = 'hidden';
+            input.name  = 'ids[]';
+            input.value = id;
+            container.appendChild(input);
+        });
+        document.getElementById('bulkDeleteSiswaForm').submit();
     }
 </script>
 @endsection
