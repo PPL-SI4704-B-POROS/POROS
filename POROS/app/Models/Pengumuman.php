@@ -12,3 +12,4 @@ class Pengumuman extends Model
         return $this->belongsTo(User::class, 'user_id');
     }
 }
+// melakukan pull untuk mendapatkan perubahan terbaru
