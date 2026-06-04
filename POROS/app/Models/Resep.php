@@ -22,6 +22,6 @@ class Resep extends Model
 
     public function bahanBaku()
     {
-        return $this->belongsTo(BahanBaku::class, 'bahan_id');
+        return $this->belongsTo(BahanBaku::class, 'bahan_id')->withTrashed();
     }
 }

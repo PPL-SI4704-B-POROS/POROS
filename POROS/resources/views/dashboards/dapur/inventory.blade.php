@@ -26,8 +26,41 @@
             @endif
 
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 2rem;">
+                <div class="card" style="padding: 2rem; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); height: fit-content;">
+                    <h2 style="font-size: 1.25rem; font-weight: 700; color: #0c1e35; margin-bottom: 1.5rem;">
+                        {{ isset($supplierEdit) ? 'Edit Supplier' : 'Tambah Supplier Baru' }}
+                    </h2>
+                    
+                    <form action="{{ isset($supplierEdit) ? route('suppliers.update', $supplierEdit->id) : route('suppliers.store') }}" method="POST">
+                        @csrf
+                        @if(isset($supplierEdit)) @method('PUT') @endif
+
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; color: #0c1e35; font-weight: 600;">Nama Supplier</label>
+                            <input type="text" name="nama_supplier" value="{{ old('nama_supplier', $supplierEdit->nama_supplier ?? '') }}" required 
+                                style="width: 100%; padding: 0.75rem; border: 1px solid #e2e8f0; border-radius: 6px; outline: none;">
+                        </div>
+
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; color: #0c1e35; font-weight: 600;">Kontak</label>
+                            <input type="text" name="kontak" value="{{ old('kontak', $supplierEdit->kontak ?? '') }}" required 
+                                style="width: 100%; padding: 0.75rem; border: 1px solid #e2e8f0; border-radius: 6px; outline: none;">
+                        </div>
+
+                        <div style="margin-bottom: 1.5rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; color: #0c1e35; font-weight: 600;">Alamat</label>
+                            <textarea name="alamat" rows="3" style="width: 100%; padding: 0.75rem; border: 1px solid #e2e8f0; border-radius: 6px; outline: none;">{{ old('alamat', $supplierEdit->alamat ?? '') }}</textarea>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary" style="padding: 0.75rem 2rem; border-radius: 6px; font-weight: 600; cursor: pointer; background-color: #10b981; border-color: #10b981;">
+                            {{ isset($supplierEdit) ? 'Update Supplier' : 'Simpan Supplier' }}
+                        </button>
+                        @if(isset($supplierEdit))
+                            <a href="{{ route('inventory.index') }}" style="margin-left: 1rem; color: var(--text-muted); text-decoration: none;">Batal</a>
+                        @endif
+                    </form>
+                </div>
                 
-                <!-- KIRI: CARD FORM CREATE / UPDATE BAHAN BAKU -->
                 <div class="card" style="padding: 2rem; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
                     <h2 style="font-size: 1.25rem; font-weight: 700; color: #0c1e35; margin-bottom: 1.5rem;">
                         {{ isset($bahanBaku) ? 'Edit Bahan Baku' : 'Tambah Bahan Baku' }}
@@ -60,7 +93,7 @@
 
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
                             <div>
-                                <label style="display: block; margin-bottom: 0.5rem; color: #0c1e35; font-weight: 600;">Jml Stok</label>
+                                <label style="display: block; margin-bottom: 0.5rem; color: #0c1e35; font-weight: 600;">Jumlah Stok (Kg)</label>
                                 <input type="number" name="stok" value="{{ old('stok', $bahanBaku->stok ?? '') }}" required 
                                     style="width: 100%; padding: 0.75rem; border: 1px solid #e2e8f0; border-radius: 6px; outline: none;">
                             </div>
@@ -72,8 +105,19 @@
                         </div>
 
                         <div style="margin-bottom: 1.5rem;">
-                            <label style="display: block; margin-bottom: 0.5rem; color: #0c1e35; font-weight: 600;">Satuan (cth: Kg, Liter)</label>
-                            <input type="text" name="satuan" value="{{ old('satuan', $bahanBaku->satuan ?? '') }}" required 
+                            <label style="display: block; margin-bottom: 0.5rem; color: #0c1e35; font-weight: 600;">Satuan Berat/Volume (Wajib)</label>
+                            <select name="satuan" required style="width: 100%; padding: 0.75rem; border: 1px solid #e2e8f0; border-radius: 6px; outline: none; background-color: white;">
+                                <option value="">-- Pilih Satuan --</option>
+                                <option value="kg" {{ (old('satuan', $bahanBaku->satuan ?? '') == 'kg') ? 'selected' : '' }}>kg</option>
+                                <option value="gram" {{ (old('satuan', $bahanBaku->satuan ?? '') == 'gram') ? 'selected' : '' }}>gram</option>
+                                <option value="liter" {{ (old('satuan', $bahanBaku->satuan ?? '') == 'liter') ? 'selected' : '' }}>liter</option>
+                                <option value="ml" {{ (old('satuan', $bahanBaku->satuan ?? '') == 'ml') ? 'selected' : '' }}>ml</option>
+                            </select>
+                        </div>
+
+                        <div style="margin-bottom: 1.5rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; color: #0c1e35; font-weight: 600;">Harga per 1 Satuan (contoh: Harga 1 kg)</label>
+                            <input type="number" name="harga" value="{{ old('harga', isset($bahanBaku) ? $bahanBaku->harga_satuan_terbaru : '') }}" required min="0" step="1" placeholder="Contoh: 40000"
                                 style="width: 100%; padding: 0.75rem; border: 1px solid #e2e8f0; border-radius: 6px; outline: none;">
                         </div>
 
@@ -81,42 +125,6 @@
                             {{ isset($bahanBaku) ? 'Update' : 'Simpan' }}
                         </button>
                         @if(isset($bahanBaku))
-                            <a href="{{ route('inventory.index') }}" style="margin-left: 1rem; color: var(--text-muted); text-decoration: none;">Batal</a>
-                        @endif
-                    </form>
-                </div>
-
-                <!-- KANAN: CARD FORM CREATE / UPDATE SUPPLIER -->
-                <div class="card" style="padding: 2rem; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); height: fit-content;">
-                    <h2 style="font-size: 1.25rem; font-weight: 700; color: #0c1e35; margin-bottom: 1.5rem;">
-                        {{ isset($supplierEdit) ? 'Edit Supplier' : 'Tambah Supplier Baru' }}
-                    </h2>
-                    
-                    <form action="{{ isset($supplierEdit) ? route('suppliers.update', $supplierEdit->id) : route('suppliers.store') }}" method="POST">
-                        @csrf
-                        @if(isset($supplierEdit)) @method('PUT') @endif
-
-                        <div style="margin-bottom: 1rem;">
-                            <label style="display: block; margin-bottom: 0.5rem; color: #0c1e35; font-weight: 600;">Nama Supplier</label>
-                            <input type="text" name="nama_supplier" value="{{ old('nama_supplier', $supplierEdit->nama_supplier ?? '') }}" required 
-                                style="width: 100%; padding: 0.75rem; border: 1px solid #e2e8f0; border-radius: 6px; outline: none;">
-                        </div>
-
-                        <div style="margin-bottom: 1rem;">
-                            <label style="display: block; margin-bottom: 0.5rem; color: #0c1e35; font-weight: 600;">Kontak</label>
-                            <input type="text" name="kontak" value="{{ old('kontak', $supplierEdit->kontak ?? '') }}" required 
-                                style="width: 100%; padding: 0.75rem; border: 1px solid #e2e8f0; border-radius: 6px; outline: none;">
-                        </div>
-
-                        <div style="margin-bottom: 1.5rem;">
-                            <label style="display: block; margin-bottom: 0.5rem; color: #0c1e35; font-weight: 600;">Alamat</label>
-                            <textarea name="alamat" rows="3" style="width: 100%; padding: 0.75rem; border: 1px solid #e2e8f0; border-radius: 6px; outline: none;">{{ old('alamat', $supplierEdit->alamat ?? '') }}</textarea>
-                        </div>
-
-                        <button type="submit" class="btn btn-primary" style="padding: 0.75rem 2rem; border-radius: 6px; font-weight: 600; cursor: pointer; background-color: #10b981; border-color: #10b981;">
-                            {{ isset($supplierEdit) ? 'Update Supplier' : 'Simpan Supplier' }}
-                        </button>
-                        @if(isset($supplierEdit))
                             <a href="{{ route('inventory.index') }}" style="margin-left: 1rem; color: var(--text-muted); text-decoration: none;">Batal</a>
                         @endif
                     </form>
@@ -166,8 +174,8 @@
                                     <tr style="border-bottom: 2px solid #e2e8f0;">
                                         <th style="padding: 0.75rem; color: #0c1e35; font-weight: 600; width: 5%;">No</th>
                                         <th style="padding: 0.75rem; color: #0c1e35; font-weight: 600;">Nama Bahan Baku</th>
-                                        <th style="padding: 0.75rem; color: #0c1e35; font-weight: 600;">Stok</th>
-                                        <th style="padding: 0.75rem; color: #0c1e35; font-weight: 600;">Satuan</th>
+                                        <th style="padding: 0.75rem; color: #0c1e35; font-weight: 600;">Stok & Satuan</th>
+                                        <th style="padding: 0.75rem; color: #0c1e35; font-weight: 600;">Harga (Rp)</th>
                                         <th style="padding: 0.75rem; color: #0c1e35; font-weight: 600; width: 15%; text-align: center;">Aksi</th>
                                     </tr>
                                 </thead>
@@ -176,8 +184,8 @@
                                         <tr style="border-bottom: 1px solid #f1f5f9;">
                                             <td style="padding: 0.75rem;">{{ $index + 1 }}</td>
                                             <td style="padding: 0.75rem; font-weight: 500; color: #0c1e35;">{{ $item->nama_bahan ?? 'Nama tidak ditemukan' }}</td>
-                                            <td style="padding: 0.75rem;">{{ $item->stok }} (Min: {{ $item->stok_minimal }})</td>
-                                            <td style="padding: 0.75rem;">{{ $item->satuan }}</td>
+                                            <td style="padding: 0.75rem;">{{ $item->stok_formatted }} (Min: {{ $item->stok_minimal_formatted }})</td>
+                                            <td style="padding: 0.75rem;">Rp {{ number_format($item->harga_satuan_terbaru, 0, ',', '.') }} / {{ $item->satuan_harga_terbaru }}</td>
                                             <td style="padding: 0.75rem; text-align: center;">
                                                 <a href="{{ route('bahan-bakus.edit', $item->id) }}" style="display: inline-block; padding: 0.3rem 0.6rem; background-color: #f59e0b; color: white; border-radius: 4px; cursor: pointer; font-size: 0.8rem; margin-right: 0.25rem; text-decoration: none;">
                                                     Edit
@@ -193,7 +201,7 @@
                                         </tr>
                                     @empty
                                         <tr>
-                                            <td colspan="5" style="padding: 1.5rem; text-align: center; color: var(--text-muted);">
+                                            <td colspan="6" style="padding: 1.5rem; text-align: center; color: var(--text-muted);">
                                                 Belum ada bahan baku dari supplier ini.
                                             </td>
                                         </tr>

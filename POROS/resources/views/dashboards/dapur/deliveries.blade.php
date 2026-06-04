@@ -187,8 +187,9 @@
                     <select name="satuan" required style="width:100%; padding:1rem; border:1px solid #d1d5db; border-radius:12px;">
                         <option value="">-- Pilih Satuan --</option>
                         <option value="kg">kg</option>
-                        <option value="pcs">pcs</option>
+                        <option value="gram">gram</option>
                         <option value="liter">liter</option>
+                        <option value="ml">ml</option>
                     </select>
                 </div>
 
