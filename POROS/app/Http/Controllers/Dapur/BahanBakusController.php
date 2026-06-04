@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Dapur;
 use App\Http\Controllers\Controller;
 use App\Models\BahanBaku;
 use App\Models\Supplier;
+use App\Models\FormHarga;
 use Illuminate\Http\Request;
 
 class BahanBakusController extends Controller
@@ -21,12 +22,21 @@ class BahanBakusController extends Controller
         $validated = $request->validate([
             'nama_bahan' => 'required|string|max:255',
             'stok' => 'required|numeric',
-            'satuan' => 'required|string|max:50',
+            'satuan' => 'required|in:kg,gram,liter,ml',
             'stok_minimal' => 'required|numeric',
-            'supplier_id' => 'required|exists:suppliers,id'
+            'supplier_id' => 'required|exists:suppliers,id',
+            'harga' => 'required|numeric|min:0'
         ]);
 
-        BahanBaku::create($validated);
+        $bahan = BahanBaku::create($validated);
+
+        FormHarga::create([
+            'harga_satuan' => $request->harga,
+            'satuan_harga' => $request->satuan,
+            'tanggal_update' => now()->toDateString(),
+            'supplier_id' => $request->supplier_id,
+            'bahan_id' => $bahan->id,
+        ]);
 
         return redirect()->route('inventory.index')->with('success', 'Bahan baku berhasil ditambahkan!');
     }
@@ -46,13 +56,35 @@ class BahanBakusController extends Controller
         $validated = $request->validate([
             'nama_bahan' => 'required|string|max:255',
             'stok' => 'required|numeric',
-            'satuan' => 'required|string|max:50',
+            'satuan' => 'required|in:kg,gram,liter,ml',
             'stok_minimal' => 'required|numeric',
-            'supplier_id' => 'required|exists:suppliers,id'
+            'supplier_id' => 'required|exists:suppliers,id',
+            'harga' => 'required|numeric|min:0'
         ]);
 
         $bahanBaku = BahanBaku::findOrFail($id);
         $bahanBaku->update($validated);
+
+        $latestFormHarga = FormHarga::where('bahan_id', $bahanBaku->id)
+            ->where('supplier_id', $request->supplier_id)
+            ->orderBy('tanggal_update', 'desc')
+            ->orderBy('id', 'desc')
+            ->first();
+
+        if ($latestFormHarga && $latestFormHarga->tanggal_update->format('Y-m-d') === now()->toDateString()) {
+             $latestFormHarga->update([
+                 'harga_satuan' => $request->harga,
+                 'satuan_harga' => $request->satuan,
+             ]);
+        } else {
+             FormHarga::create([
+                'harga_satuan' => $request->harga,
+                'satuan_harga' => $request->satuan,
+                'tanggal_update' => now()->toDateString(),
+                'supplier_id' => $request->supplier_id,
+                'bahan_id' => $bahanBaku->id,
+            ]);
+        }
 
         // Setelah update, kembalikan ke halaman index agar form kembali kosong
         return redirect()->route('inventory.index')->with('success', 'Data bahan baku berhasil diupdate!');

@@ -243,6 +243,10 @@
                 <span style="color: #64748b; font-size: 0.85rem; font-weight: 600;">Alergi</span>
                 <span style="color: #ef4444; font-size: 0.85rem; font-weight: 700; text-align: right;" id="view_siswa_alergi"></span>
             </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.75rem;">
+                <span style="color: #64748b; font-size: 0.85rem; font-weight: 600;">Status</span>
+                <span id="view_siswa_status"></span>
+            </div>
 
             <div style="font-size: 0.75rem; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 0.5rem; margin-bottom: 0.25rem;">Data Fisik (Terbaru)</div>
             <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.75rem;">

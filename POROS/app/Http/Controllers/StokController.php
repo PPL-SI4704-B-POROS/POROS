@@ -38,7 +38,7 @@ class StokController extends Controller
     {
         $request->validate([
             'bahan_baku_id' => 'required|exists:bahan_bakus,id',
-            'satuan'        => 'required|in:kg,pcs,liter',
+            'satuan'        => 'required|in:kg,gram,liter,ml',
         ]);
 
         $bahan = BahanBaku::findOrFail($request->bahan_baku_id);

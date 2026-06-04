@@ -18,7 +18,7 @@ class MenuController extends Controller
      */
     public function index(Request $request)
     {
-        $menus = Menu::with('reseps.bahanBaku')->get();
+        $menus = Menu::with('reseps.bahanBaku.formHargas')->get();
         $bahanBakus = BahanBaku::orderBy('nama_bahan', 'asc')->get();
         
         // Support week navigation via query param
@@ -26,7 +26,7 @@ class MenuController extends Controller
         $startOfWeek = Carbon::now()->startOfWeek()->addWeeks($weekOffset);
         $endOfWeek = $startOfWeek->copy()->endOfWeek();
         
-        $schedules = ProduksiHarian::with('menu.reseps.bahanBaku')
+        $schedules = ProduksiHarian::with('menu.reseps.bahanBaku.formHargas')
             ->whereBetween('tanggal_produksi', [$startOfWeek->toDateString(), $endOfWeek->toDateString()])
             ->get()
             ->groupBy(fn($item) => $item->tanggal_produksi->format('Y-m-d'));

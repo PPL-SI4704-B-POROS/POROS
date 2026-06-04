@@ -126,8 +126,8 @@ class BahanBakuSeeder extends Seeder
 
             $bahanBakus[] = [
                 'nama_bahan' => $item[0],
-                'stok' => rand(3000, 10000), // Random initial stock
-                'stok_minimal' => 1500,
+                'stok' => 150000, // 150 kg in grams
+                'stok_minimal' => 150000, // 150 kg in grams
                 'satuan' => 'gram',
                 'katalog_pangan_id' => $findKatalogId($item[1]),
                 'supplier_id' => $supp_id,
@@ -151,8 +151,8 @@ class BahanBakuSeeder extends Seeder
         foreach ($remainingKatalogs as $kp) {
             $additionalBahanBakus[] = [
                 'nama_bahan' => $kp->nama_pangan,
-                'stok' => rand(3000, 10000),
-                'stok_minimal' => 1500,
+                'stok' => 150000, // 150 kg in grams
+                'stok_minimal' => 150000, // 150 kg in grams
                 'satuan' => 'gram',
                 'katalog_pangan_id' => $kp->id,
                 'supplier_id' => $suppliers[0] ?? 1,
