@@ -125,7 +125,7 @@
                                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path></svg>
                                     </button>
 
-                                    {{-- Tombol View (MATA) --}}
+                                    {{-- Tombol View --}}
                                     <button onclick="openViewSiswaModal(
                                         '{{ addslashes($nama_bersih) }}', 
                                         '{{ $siswa->nisn }}', 
@@ -155,7 +155,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="6" style="text-align: center; padding: 3rem; color: #64748b; font-weight: 600;">Tidak ada data siswa ditemukan.</td>
+                            <td colspan="7" style="text-align: center; padding: 3rem; color: #64748b; font-weight: 600;">Tidak ada data siswa ditemukan.</td>
                         </tr>
                     @endforelse
                 </tbody>
@@ -168,8 +168,7 @@
     </main>
 </div>
 
-<!-- Bulk Delete Bar -->
-<div id="bulkBarSiswa" style="display: none; position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); z-index: 3000; background: #0c1e35; color: white; border-radius: 16px; padding: 1rem 1.5rem; display: none; align-items: center; gap: 1.5rem; box-shadow: 0 8px 32px rgba(0,0,0,0.25); min-width: 380px;">
+<div id="bulkBarSiswa" style="display: none; position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); z-index: 3000; background: #0c1e35; color: white; border-radius: 16px; padding: 1rem 1.5rem; align-items: center; gap: 1.5rem; box-shadow: 0 8px 32px rgba(0,0,0,0.25); min-width: 380px;">
     <span id="bulkCountSiswa" style="font-weight: 700; font-size: 0.95rem;">0 siswa dipilih</span>
     <div style="display: flex; gap: 0.75rem; margin-left: auto;">
         <button onclick="clearSelectionSiswa()" style="padding: 0.5rem 1rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); background: transparent; color: white; cursor: pointer; font-weight: 600; font-size: 0.85rem;">Batal</button>
@@ -186,7 +185,6 @@
     <div id="bulkDeleteSiswaIds"></div>
 </form>
 
-<!-- Modal View Siswa -->
 <div id="viewSiswaModal" class="modal-form-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center;">
     <div class="modal-form-box" style="background: white; border-radius: 20px; padding: 2.5rem; width: 450px; max-width: 92%; box-shadow: 0 25px 50px rgba(0,0,0,0.15);">
         <div style="text-align: center; margin-bottom: 1.5rem;">
@@ -237,7 +235,6 @@
     </div>
 </div>
 
-{{-- Modal-modal lainnya (Add, Edit, Delete, Ukur) --}}
 <div id="addSiswaModal" class="modal-form-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center;">
     <div class="modal-form-box" style="background: white; border-radius: 20px; padding: 2rem; width: 500px; max-width: 92%;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
@@ -358,11 +355,11 @@
         <h4 style="margin-bottom: 0.5rem;">Hapus Siswa?</h4>
         <p id="deleteConfirmText" style="margin-bottom: 1.5rem;"></p>
         <div style="display: flex; gap: 0.75rem;">
-            <button type="button" onclick="closeModal('deleteModal')" style="flex: 1; padding: 0.7rem; cursor: pointer;">Batal</button>
+            <button type="button" onclick="closeModal('deleteModal')" style="flex: 1; padding: 0.7rem; cursor: pointer; border-radius:10px; border:1px solid #ccc; background:#fff;">Batal</button>
             <form id="deleteSiswaForm" method="POST" style="flex:1;">
                 @csrf
                 @method('DELETE')
-                <button type="submit" style="width:100%; padding: 0.7rem; background: #ef4444; color: white; border: none; border-radius: 10px; cursor: pointer;">Ya, Hapus</button>
+                <button type="submit" style="width:100%; padding: 0.7rem; background: #ef4444; color: white; border: none; border-radius: 10px; cursor: pointer; font-weight:600;">Ya, Hapus</button>
             </form>
         </div>
     </div>
@@ -465,14 +462,18 @@ Siti Aminah,0987654321,7B,08234567890,Kacang,Active</pre>
             bulkBarSiswa.style.display = 'none';
         }
         const all = document.querySelectorAll('.siswa-checkbox');
-        selectAllSiswa.checked = all.length > 0 && checked.length === all.length;
-        selectAllSiswa.indeterminate = checked.length > 0 && checked.length < all.length;
+        if(selectAllSiswa) {
+            selectAllSiswa.checked = all.length > 0 && checked.length === all.length;
+            selectAllSiswa.indeterminate = checked.length > 0 && checked.length < all.length;
+        }
     }
 
-    selectAllSiswa.addEventListener('change', function () {
-        document.querySelectorAll('.siswa-checkbox').forEach(cb => cb.checked = this.checked);
-        updateBulkBarSiswa();
-    });
+    if(selectAllSiswa) {
+        selectAllSiswa.addEventListener('change', function () {
+            document.querySelectorAll('.siswa-checkbox').forEach(cb => cb.checked = this.checked);
+            updateBulkBarSiswa();
+        });
+    }
 
     document.querySelectorAll('.siswa-checkbox').forEach(cb => {
         cb.addEventListener('change', updateBulkBarSiswa);
@@ -480,8 +481,10 @@ Siti Aminah,0987654321,7B,08234567890,Kacang,Active</pre>
 
     function clearSelectionSiswa() {
         document.querySelectorAll('.siswa-checkbox').forEach(cb => cb.checked = false);
-        selectAllSiswa.checked = false;
-        selectAllSiswa.indeterminate = false;
+        if(selectAllSiswa) {
+            selectAllSiswa.checked = false;
+            selectAllSiswa.indeterminate = false;
+        }
         bulkBarSiswa.style.display = 'none';
     }
 
