@@ -31,7 +31,19 @@ class MenuController extends Controller
             ->get()
             ->groupBy(fn($item) => $item->tanggal_produksi->format('Y-m-d'));
 
-        return view('dashboards.dapur.meal-planning', compact('menus', 'bahanBakus', 'schedules', 'startOfWeek', 'weekOffset'));
+        // Fetch active allergies
+        $activeAlergiRaw = \App\Models\Siswa::where('status', 'Active')->whereNotNull('alergi')->pluck('alergi');
+        $activeAllergies = [];
+        foreach ($activeAlergiRaw as $alergiStr) {
+            $items = array_map('trim', explode(',', $alergiStr));
+            foreach ($items as $item) {
+                if (!empty($item) && !in_array(strtolower($item), array_map('strtolower', $activeAllergies))) {
+                    $activeAllergies[] = $item;
+                }
+            }
+        }
+
+        return view('dashboards.dapur.meal-planning', compact('menus', 'bahanBakus', 'schedules', 'startOfWeek', 'weekOffset', 'activeAllergies'));
     }
 
     /**
