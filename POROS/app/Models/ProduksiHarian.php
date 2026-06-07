@@ -24,7 +24,7 @@ class ProduksiHarian extends Model
     {
         return $this->belongsTo(Menu::class);
     }
-
+    //harga modal keseluruhan
     public function getHargaTotalModalAttribute()
     {
         return $this->menu ? $this->menu->harga_modal_per_porsi * $this->total_target_porsi : 0;

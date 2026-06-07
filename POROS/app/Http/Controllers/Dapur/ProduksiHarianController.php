@@ -17,6 +17,8 @@ class ProduksiHarianController extends Controller
             'total_target_porsi' => 'required|integer|min:1',
         ]);
 
+        $this->validateAllergy($request->menu_id);
+
         ProduksiHarian::create([
             'tanggal_produksi' => $request->tanggal_produksi,
             'menu_id' => $request->menu_id,
@@ -33,6 +35,8 @@ class ProduksiHarianController extends Controller
             'menu_id' => 'required|exists:menus,id',
             'total_target_porsi' => 'required|integer|min:1',
         ]);
+
+        $this->validateAllergy($request->menu_id);
 
         $schedule = ProduksiHarian::findOrFail($id);
         $schedule->update([
@@ -120,5 +124,37 @@ class ProduksiHarianController extends Controller
 
         $schedule->delete();
         return redirect()->back()->with('success', 'Jadwal menu berhasil dihapus.');
+    }
+
+    private function validateAllergy($menuId)
+    {
+        $activeAlergiRaw = \App\Models\Siswa::where('status', 'Active')->whereNotNull('alergi')->pluck('alergi');
+        $activeAllergies = [];
+        foreach ($activeAlergiRaw as $alergiStr) {
+            $items = array_map('trim', explode(',', $alergiStr));
+            foreach ($items as $item) {
+                if (!empty($item) && !in_array(strtolower($item), array_map('strtolower', $activeAllergies))) {
+                    $activeAllergies[] = $item;
+                }
+            }
+        }
+
+        if (empty($activeAllergies)) {
+            return;
+        }
+
+        $menu = \App\Models\Menu::with('reseps.bahanBaku')->findOrFail($menuId);
+        foreach ($menu->reseps as $resep) {
+            if ($resep->bahanBaku) {
+                $namaBahan = strtolower($resep->bahanBaku->nama_bahan);
+                foreach ($activeAllergies as $alergi) {
+                    if (stripos($namaBahan, strtolower($alergi)) !== false) {
+                        throw \Illuminate\Validation\ValidationException::withMessages([
+                            'menu_id' => "Menu ini tidak dapat dijadwalkan karena mengandung bahan alergen '{$resep->bahanBaku->nama_bahan}' (Alergi aktif: {$alergi})."
+                        ]);
+                    }
+                }
+            }
+        }
     }
 }
