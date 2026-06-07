@@ -8,11 +8,8 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\StokController;
 
 use App\Http\Controllers\SuperAdmin\UserController;
-<<<<<<< HEAD
 use App\Http\Controllers\SuperAdmin\PengumumanController;
-=======
 use App\Http\Controllers\SuperAdmin\AnalyticsController;
->>>>>>> VIYEN_MANAJEMENSUPLAI
 use App\Http\Controllers\Dapur\MenuController;
 use App\Http\Controllers\Dapur\ProduksiHarianController;
 use App\Http\Controllers\Dapur\BahanBakusController;
