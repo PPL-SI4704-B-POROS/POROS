@@ -63,10 +63,11 @@ Route::middleware(['auth'])->group(function () {
             return view('dashboards.superadmin.settings');
         })->name('settings.index');
 
-        // ===== PENGUMUMAN - Hanya Super Admin yang bisa buat & edit =====
+        // ===== PENGUMUMAN - Hanya Super Admin yang bisa buat, edit & hapus =====
         Route::post('/dashboard/superadmin/pengumuman', [PengumumanController::class, 'store'])->name('pengumuman.store');
         Route::get('/dashboard/superadmin/pengumuman/{pengumuman}/edit', [PengumumanController::class, 'edit'])->name('pengumuman.edit');
         Route::put('/dashboard/superadmin/pengumuman/{pengumuman}', [PengumumanController::class, 'update'])->name('pengumuman.update');
+        Route::delete('/dashboard/superadmin/pengumuman/{pengumuman}', [PengumumanController::class, 'destroy'])->name('pengumuman.destroy');
 
         Route::get('/dashboard/superadmin/analytics', [AnalyticsController::class, 'index'])->name('superadmin.analytics');
     });
