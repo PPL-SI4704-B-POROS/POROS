@@ -27,7 +27,7 @@ class Menu extends Model
     {
         return $this->hasMany(ProduksiHarian::class);
     }
-
+    //harga perporsi
     public function getHargaModalPerPorsiAttribute()
     {
         $total = 0;

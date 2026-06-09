@@ -15,12 +15,6 @@
     </div>
 
     <nav class="nav-list">
-        <!-- Dashboard Link -->
-        <a href="{{ route('dashboard.index') }}" class="nav-link {{ Request::routeIs('dashboard.index') ? 'active' : '' }}">
-            <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
-            <span class="nav-text">Dashboard</span>
-        </a>
-
         @php
             $role = Auth::user()->role->nama_role;
         @endphp
@@ -66,7 +60,7 @@
             </a>
 
         @elseif($role == 'sekolah')
-            <a href="{{ route('dashboard.sekolah.monitoring') }}" class="nav-link {{ Request::routeIs('dashboard.sekolah.monitoring') ? 'active' : '' }}">
+            <a href="{{ route('sekolah.monitoring') }}" class="nav-link {{ Request::routeIs('sekolah.monitoring') ? 'active' : '' }}">
                 <svg viewBox="0 0 24 24"><path d="M3 21h18M3 10l9-7 9 7v11H3V10z"/><path d="M9 21V11h6v10"/></svg>
                 <span class="nav-text">School Monitoring</span>
             </a>
@@ -77,6 +71,9 @@
             <a href="{{ route('sekolah.laporan-masalah.index') }}" class="nav-link {{ Request::routeIs('sekolah.laporan-masalah.index') ? 'active' : '' }}">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
                 <span class="nav-text">Laporan Masalah</span>
+            <a href="{{ route('sekolah.riwayat-kesehatan.index') }}" class="nav-link {{ Request::routeIs('sekolah.riwayat-kesehatan.index') ? 'active' : '' }}">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+                <span class="nav-text">Riwayat Kesehatan</span>
             </a>
         @endif
     </nav>

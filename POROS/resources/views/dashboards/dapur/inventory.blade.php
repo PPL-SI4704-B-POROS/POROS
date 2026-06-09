@@ -26,8 +26,41 @@
             @endif
 
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 2rem;">
+                <div class="card" style="padding: 2rem; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); height: fit-content;">
+                    <h2 style="font-size: 1.25rem; font-weight: 700; color: #0c1e35; margin-bottom: 1.5rem;">
+                        {{ isset($supplierEdit) ? 'Edit Supplier' : 'Tambah Supplier Baru' }}
+                    </h2>
+                    
+                    <form action="{{ isset($supplierEdit) ? route('suppliers.update', $supplierEdit->id) : route('suppliers.store') }}" method="POST">
+                        @csrf
+                        @if(isset($supplierEdit)) @method('PUT') @endif
+
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; color: #0c1e35; font-weight: 600;">Nama Supplier</label>
+                            <input type="text" name="nama_supplier" value="{{ old('nama_supplier', $supplierEdit->nama_supplier ?? '') }}" required 
+                                style="width: 100%; padding: 0.75rem; border: 1px solid #e2e8f0; border-radius: 6px; outline: none;">
+                        </div>
+
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; color: #0c1e35; font-weight: 600;">Kontak</label>
+                            <input type="text" name="kontak" value="{{ old('kontak', $supplierEdit->kontak ?? '') }}" required 
+                                style="width: 100%; padding: 0.75rem; border: 1px solid #e2e8f0; border-radius: 6px; outline: none;">
+                        </div>
+
+                        <div style="margin-bottom: 1.5rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; color: #0c1e35; font-weight: 600;">Alamat</label>
+                            <textarea name="alamat" rows="3" style="width: 100%; padding: 0.75rem; border: 1px solid #e2e8f0; border-radius: 6px; outline: none;">{{ old('alamat', $supplierEdit->alamat ?? '') }}</textarea>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary" style="padding: 0.75rem 2rem; border-radius: 6px; font-weight: 600; cursor: pointer; background-color: #10b981; border-color: #10b981;">
+                            {{ isset($supplierEdit) ? 'Update Supplier' : 'Simpan Supplier' }}
+                        </button>
+                        @if(isset($supplierEdit))
+                            <a href="{{ route('inventory.index') }}" style="margin-left: 1rem; color: var(--text-muted); text-decoration: none;">Batal</a>
+                        @endif
+                    </form>
+                </div>
                 
-                <!-- KIRI: CARD FORM CREATE / UPDATE BAHAN BAKU -->
                 <div class="card" style="padding: 2rem; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
                     <h2 style="font-size: 1.25rem; font-weight: 700; color: #0c1e35; margin-bottom: 1.5rem;">
                         {{ isset($bahanBaku) ? 'Edit Bahan Baku' : 'Tambah Bahan Baku' }}
@@ -92,42 +125,6 @@
                             {{ isset($bahanBaku) ? 'Update' : 'Simpan' }}
                         </button>
                         @if(isset($bahanBaku))
-                            <a href="{{ route('inventory.index') }}" style="margin-left: 1rem; color: var(--text-muted); text-decoration: none;">Batal</a>
-                        @endif
-                    </form>
-                </div>
-
-                <!-- KANAN: CARD FORM CREATE / UPDATE SUPPLIER -->
-                <div class="card" style="padding: 2rem; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); height: fit-content;">
-                    <h2 style="font-size: 1.25rem; font-weight: 700; color: #0c1e35; margin-bottom: 1.5rem;">
-                        {{ isset($supplierEdit) ? 'Edit Supplier' : 'Tambah Supplier Baru' }}
-                    </h2>
-                    
-                    <form action="{{ isset($supplierEdit) ? route('suppliers.update', $supplierEdit->id) : route('suppliers.store') }}" method="POST">
-                        @csrf
-                        @if(isset($supplierEdit)) @method('PUT') @endif
-
-                        <div style="margin-bottom: 1rem;">
-                            <label style="display: block; margin-bottom: 0.5rem; color: #0c1e35; font-weight: 600;">Nama Supplier</label>
-                            <input type="text" name="nama_supplier" value="{{ old('nama_supplier', $supplierEdit->nama_supplier ?? '') }}" required 
-                                style="width: 100%; padding: 0.75rem; border: 1px solid #e2e8f0; border-radius: 6px; outline: none;">
-                        </div>
-
-                        <div style="margin-bottom: 1rem;">
-                            <label style="display: block; margin-bottom: 0.5rem; color: #0c1e35; font-weight: 600;">Kontak</label>
-                            <input type="text" name="kontak" value="{{ old('kontak', $supplierEdit->kontak ?? '') }}" required 
-                                style="width: 100%; padding: 0.75rem; border: 1px solid #e2e8f0; border-radius: 6px; outline: none;">
-                        </div>
-
-                        <div style="margin-bottom: 1.5rem;">
-                            <label style="display: block; margin-bottom: 0.5rem; color: #0c1e35; font-weight: 600;">Alamat</label>
-                            <textarea name="alamat" rows="3" style="width: 100%; padding: 0.75rem; border: 1px solid #e2e8f0; border-radius: 6px; outline: none;">{{ old('alamat', $supplierEdit->alamat ?? '') }}</textarea>
-                        </div>
-
-                        <button type="submit" class="btn btn-primary" style="padding: 0.75rem 2rem; border-radius: 6px; font-weight: 600; cursor: pointer; background-color: #10b981; border-color: #10b981;">
-                            {{ isset($supplierEdit) ? 'Update Supplier' : 'Simpan Supplier' }}
-                        </button>
-                        @if(isset($supplierEdit))
                             <a href="{{ route('inventory.index') }}" style="margin-left: 1rem; color: var(--text-muted); text-decoration: none;">Batal</a>
                         @endif
                     </form>

@@ -11,7 +11,10 @@ use App\Http\Controllers\LaporanMasalahController;
 use App\Http\Controllers\SuperAdmin\UserController;
 use App\Http\Controllers\SuperAdmin\PengumumanController;
 use App\Http\Controllers\SuperAdmin\AnalyticsController;
+<<<<<<< HEAD
 use App\Http\Controllers\SuperAdmin\LaporanMasalahController as AdminLaporanMasalahController;
+=======
+>>>>>>> fda110c922bd324e73c5969d1c475796d996abb9
 use App\Http\Controllers\Dapur\MenuController;
 use App\Http\Controllers\Dapur\ProduksiHarianController;
 use App\Http\Controllers\Dapur\BahanBakusController;
@@ -64,18 +67,25 @@ Route::middleware(['auth'])->group(function () {
             return view('dashboards.superadmin.settings');
         })->name('settings.index');
 
+<<<<<<< HEAD
         // ===== PENGUMUMAN - Hanya Super Admin yang bisa buat, edit & hapus =====
+=======
+        // ===== PENGUMUMAN - Hanya Super Admin yang bisa buat & edit =====
+>>>>>>> fda110c922bd324e73c5969d1c475796d996abb9
         Route::post('/dashboard/superadmin/pengumuman', [PengumumanController::class, 'store'])->name('pengumuman.store');
         Route::get('/dashboard/superadmin/pengumuman/{pengumuman}/edit', [PengumumanController::class, 'edit'])->name('pengumuman.edit');
         Route::put('/dashboard/superadmin/pengumuman/{pengumuman}', [PengumumanController::class, 'update'])->name('pengumuman.update');
         Route::delete('/dashboard/superadmin/pengumuman/{pengumuman}', [PengumumanController::class, 'destroy'])->name('pengumuman.destroy');
 
         Route::get('/dashboard/superadmin/analytics', [AnalyticsController::class, 'index'])->name('superadmin.analytics');
+<<<<<<< HEAD
 
         // ================= LAPORAN MASALAH =================
         Route::get('/dashboard/superadmin/laporan-masalah', [AdminLaporanMasalahController::class, 'index'])->name('superadmin.laporan-masalah.index');
         Route::patch('/dashboard/superadmin/laporan-masalah/{laporanMasalah}/status', [AdminLaporanMasalahController::class, 'updateStatus'])->name('superadmin.laporan-masalah.updateStatus');
         Route::delete('/dashboard/superadmin/laporan-masalah/{laporanMasalah}', [AdminLaporanMasalahController::class, 'destroy'])->name('superadmin.laporan-masalah.destroy');
+=======
+>>>>>>> fda110c922bd324e73c5969d1c475796d996abb9
     });
 
     // =========================================================
@@ -125,14 +135,17 @@ Route::middleware(['auth'])->group(function () {
         Route::delete('/dashboard/dapur/laporan-masalah/{laporanMasalah}', [LaporanMasalahController::class, 'destroy'])->name('dapur.laporan-masalah.destroy');
     });
 
-    // =========================================================
+// =========================================================
     // SEKOLAH
     // =========================================================
     Route::middleware(['role:sekolah'])->group(function () {
 
         Route::get('/dashboard/sekolah/monitoring', function () {
+    Route::middleware(['auth', 'role:sekolah'])->prefix('dashboard/sekolah')->name('sekolah.')->group(function () {
+        // Route untuk halaman monitoring
+        Route::get('/monitoring', function () {
             return view('dashboards.sekolah.monitoring');
-        })->name('dashboard.sekolah.monitoring');
+        })->name('monitoring');
 
         // Student Management for Sekolah
         Route::get('/dashboard/sekolah/siswas', [SiswaController::class, 'index'])->name('sekolah.siswas.index');
@@ -145,6 +158,22 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/dashboard/sekolah/laporan-masalah', [LaporanMasalahController::class, 'index'])->name('sekolah.laporan-masalah.index');
         Route::post('/dashboard/sekolah/laporan-masalah', [LaporanMasalahController::class, 'store'])->name('sekolah.laporan-masalah.store');
         Route::delete('/dashboard/sekolah/laporan-masalah/{laporanMasalah}', [LaporanMasalahController::class, 'destroy'])->name('sekolah.laporan-masalah.destroy');
+        // FIXED: Diarahkan ke SiswaController, bukan UserController
+        Route::get('/siswas', [SiswaController::class, 'index'])->name('siswas.index'); 
+        
+        // Route pendukung lainnya (Store, Update, Delete)
+        Route::post('/siswas', [SiswaController::class, 'store'])->name('siswas.store');
+        Route::post('/siswas/import', [SiswaController::class, 'import'])->name('siswas.import');
+        Route::put('/siswas/{siswa}', [SiswaController::class, 'update'])->name('siswas.update');
+        Route::delete('/siswas/bulk-destroy', [SiswaController::class, 'bulkDestroy'])->name('siswas.bulk-destroy');
+        Route::delete('/siswas/{siswa}', [SiswaController::class, 'destroy'])->name('siswas.destroy');
+        Route::post('/siswas/{siswa}/antropometri', [SiswaController::class, 'storeAntropometri'])->name('siswas.antropometri');
+         
+        // Riwayat Kesehatan
+        Route::get('/riwayat-kesehatan', [SiswaController::class, 'riwayatKesehatan'])->name('riwayat-kesehatan.index');
+        Route::post('/riwayat-kesehatan/import', [SiswaController::class, 'importAntropometri'])->name('riwayat-kesehatan.import');
+        Route::delete('/riwayat-kesehatan/bulk-destroy', [SiswaController::class, 'bulkDestroyAntropometri'])->name('riwayat-kesehatan.bulk-destroy');
+        Route::delete('/riwayat-kesehatan/{antropometri}', [SiswaController::class, 'destroyAntropometri'])->name('riwayat-kesehatan.destroy');
     });
 
 });
