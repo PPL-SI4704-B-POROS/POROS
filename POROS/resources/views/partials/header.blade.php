@@ -11,33 +11,37 @@
                     <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
                 </svg>
                 @if($jumlahPengumuman > 0)
-                    <span style="
-                        position: absolute;
-                        top: -6px;
-                        right: -6px;
-                        background: #ff6b00;
-                        color: white;
-                        font-size: 10px;
-                        font-weight: 700;
-                        min-width: 16px;
-                        height: 16px;
-                        border-radius: 999px;
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        padding: 0 3px;
-                        line-height: 1;
-                        border: 2px solid white;
-                    ">{{ $jumlahPengumuman > 99 ? '99+' : $jumlahPengumuman }}</span>
+                    <span style="position:absolute; top:-6px; right:-6px; background:#ff6b00; color:white; font-size:10px; font-weight:700; min-width:16px; height:16px; border-radius:999px; display:flex; align-items:center; justify-content:center; padding:0 3px; line-height:1; border:2px solid white;">
+                        {{ $jumlahPengumuman > 99 ? '99+' : $jumlahPengumuman }}
+                    </span>
                 @endif
             </a>
         @else
             {{-- User lain: klik lonceng muncul popup pengumuman --}}
+            @php
+                $userRole = auth()->user()->role->nama_role;
+                // Filter: tampilkan hanya pengumuman umum + yang ditujukan ke role ini
+                $pengumumanList = \App\Models\Pengumuman::with('pembuat')
+                    ->where(function($q) use ($userRole) {
+                        $q->where('target_role', 'umum')
+                          ->orWhere('target_role', $userRole);
+                    })
+                    ->latest()
+                    ->take(5)
+                    ->get();
+                $jumlahPengumuman = $pengumumanList->count();
+            @endphp
             <div style="color: #0c1e35; cursor: pointer; position: relative;" onclick="togglePopupPengumuman()">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
                     <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
                 </svg>
+                {{-- Badge jumlah --}}
+                @if($jumlahPengumuman > 0)
+                    <span style="position:absolute; top:-6px; right:-6px; background:#ff6b00; color:white; font-size:10px; font-weight:700; min-width:16px; height:16px; border-radius:999px; display:flex; align-items:center; justify-content:center; padding:0 3px; line-height:1; border:2px solid white;">
+                        {{ $jumlahPengumuman > 99 ? '99+' : $jumlahPengumuman }}
+                    </span>
+                @endif
                 {{-- Popup Pengumuman --}}
                 <div id="popupPengumuman" style="display:none; position:absolute; top:36px; right:0; width:340px; background:white; border-radius:16px; box-shadow:0 8px 32px rgba(0,0,0,0.15); z-index:9999; overflow:hidden;">
                     {{-- Header popup --}}
@@ -47,9 +51,6 @@
                     </div>
                     {{-- Isi pengumuman --}}
                     <div style="max-height:360px; overflow-y:auto; padding:8px 0;">
-                        @php
-                            $pengumumanList = \App\Models\Pengumuman::with('pembuat')->latest()->take(5)->get();
-                        @endphp
                         @forelse($pengumumanList as $item)
                         <div style="padding:14px 20px; border-bottom:1px solid #f8fafc;">
                             <div style="display:flex; align-items:center; gap:10px; margin-bottom:6px;">
@@ -61,17 +62,26 @@
                                     <div style="font-size:11px; color:#94a3b8;">{{ $item->pembuat->nama_lengkap }} &bull; {{ $item->created_at->diffForHumans() }}</div>
                                 </div>
                             </div>
+                            {{-- Gambar kalau ada --}}
+                            @if($item->gambar)
+                            <div style="padding-left:46px; margin-bottom:6px;">
+                                <img src="{{ asset('storage/' . $item->gambar) }}"
+                                     alt="gambar"
+                                     style="width:100%; max-height:120px; object-fit:cover; border-radius:8px; border:1px solid #f1f5f9;">
+                            </div>
+                            @endif
                             <p style="font-size:13px; color:#475569; line-height:1.5; margin:0; padding-left:46px;">{{ Str::limit($item->isi, 100) }}</p>
                         </div>
                         @empty
                         <div style="padding:24px; text-align:center; color:#94a3b8; font-size:13px;">
-                            Belum ada pengumuman yang dibuat.
+                            Belum ada pengumuman untuk Anda.
                         </div>
                         @endforelse
                     </div>
                 </div>
             </div>
         @endif
+
         <!-- User Profile Dropdown -->
         <div class="user-profile" id="profileToggle">
             <div style="background: #ff6b00; width: 42px; height: 42px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white;">
@@ -114,7 +124,6 @@ function togglePopupPengumuman() {
     var popup = document.getElementById('popupPengumuman');
     popup.style.display = popup.style.display === 'none' ? 'block' : 'none';
 }
-// Tutup popup kalau klik di luar
 document.addEventListener('click', function(e) {
     var popup = document.getElementById('popupPengumuman');
     if (popup && !popup.closest('div').contains(e.target)) {

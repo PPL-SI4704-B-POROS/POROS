@@ -12,7 +12,7 @@
         min-height: 100vh;
     }
 
-    /* ── Page Header ── */
+    /* Page Header */
     .pgm-header {
         display: flex;
         align-items: flex-start;
@@ -57,7 +57,7 @@
         box-shadow: 0 2px 8px rgba(0,0,0,0.08);
     }
 
-    /* ── Stats Row ── */
+    /* Stats Row */
     .pgm-stats {
         display: grid;
         grid-template-columns: repeat(3, 1fr);
@@ -106,7 +106,7 @@
         letter-spacing: -0.5px;
     }
 
-    /* ── Main Layout ── */
+    /* Main Layout */
     .pgm-layout {
         display: grid;
         grid-template-columns: 1fr 360px;
@@ -114,7 +114,7 @@
         align-items: start;
     }
 
-    /* ── Card Base ── */
+    /* Card Base */
     .pgm-card {
         background: white;
         border-radius: 18px;
@@ -151,7 +151,7 @@
         margin: 0;
     }
 
-    /* ── Form ── */
+    /* Form */
     .pgm-form-body {
         padding: 22px 24px;
     }
@@ -170,8 +170,9 @@
         letter-spacing: 0.4px;
     }
 
-    .form-group input,
-    .form-group textarea {
+    .form-group input[type="text"],
+    .form-group textarea,
+    .form-group select {
         width: 100%;
         border: 1.5px solid #e2e8f0;
         border-radius: 10px;
@@ -185,8 +186,9 @@
         background: #fafbfc;
     }
 
-    .form-group input:focus,
-    .form-group textarea:focus {
+    .form-group input[type="text"]:focus,
+    .form-group textarea:focus,
+    .form-group select:focus {
         border-color: #ff6b00;
         background: white;
         box-shadow: 0 0 0 3px rgba(255, 107, 0, 0.08);
@@ -195,6 +197,52 @@
     .form-group textarea {
         resize: vertical;
         min-height: 110px;
+    }
+
+    /* File input khusus */
+    .file-upload-wrap {
+        border: 1.5px dashed #e2e8f0;
+        border-radius: 10px;
+        padding: 14px;
+        background: #fafbfc;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.18s;
+    }
+
+    .file-upload-wrap:hover {
+        border-color: #ff6b00;
+        background: #fff8f3;
+    }
+
+    .file-upload-wrap input[type="file"] {
+        display: none;
+    }
+
+    .file-upload-label {
+        font-size: 13px;
+        color: #64748b;
+        font-weight: 500;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+    }
+
+    .file-upload-label span.highlight {
+        color: #ff6b00;
+        font-weight: 700;
+    }
+
+    #preview-img {
+        width: 100%;
+        max-height: 160px;
+        object-fit: cover;
+        border-radius: 8px;
+        margin-top: 10px;
+        display: none;
+        border: 1px solid #f1f5f9;
     }
 
     .btn-publish {
@@ -218,9 +266,7 @@
         transform: translateY(-1px);
     }
 
-    .btn-publish:active { transform: translateY(0); }
-
-    /* ── Daftar Pengumuman ── */
+    /* Daftar Pengumuman */
     .pgm-item {
         display: flex;
         align-items: flex-start;
@@ -273,6 +319,7 @@
         display: flex;
         align-items: center;
         gap: 5px;
+        flex-wrap: wrap;
     }
 
     .pgm-meta .sep {
@@ -283,11 +330,35 @@
         display: inline-block;
     }
 
+    /* Badge target role */
+    .badge-target {
+        display: inline-block;
+        font-size: 11px;
+        font-weight: 700;
+        padding: 2px 9px;
+        border-radius: 20px;
+        white-space: nowrap;
+    }
+
+    .badge-umum    { background: #eef2ff; color: #6366f1; }
+    .badge-sekolah { background: #ecfeff; color: #0891b2; }
+    .badge-dapur   { background: #fffbeb; color: #d97706; }
+
     .pgm-isi {
         font-size: 13px;
         color: #64748b;
         line-height: 1.65;
-        margin: 0;
+        margin: 0 0 10px 0;
+    }
+
+    /* Gambar di item pengumuman */
+    .pgm-gambar {
+        width: 100%;
+        max-height: 220px;
+        object-fit: cover;
+        border-radius: 10px;
+        margin-bottom: 4px;
+        border: 1px solid #f1f5f9;
     }
 
     .pgm-item-actions {
@@ -317,7 +388,6 @@
     .btn-edit:hover {
         background: #dbeafe;
         border-color: #2563eb;
-        box-shadow: 0 2px 6px rgba(37,99,235,0.12);
     }
 
     .btn-delete {
@@ -340,10 +410,9 @@
     .btn-delete:hover {
         background: #fee2e2;
         border-color: #dc2626;
-        box-shadow: 0 2px 6px rgba(220,38,38,0.12);
     }
 
-    /* ── Empty State ── */
+    /* Empty State */
     .empty-state {
         text-align: center;
         padding: 52px 24px;
@@ -367,7 +436,7 @@
         margin: 0;
     }
 
-    /* ── Tips Card ── */
+    /* Tips Card */
     .tips-card {
         background: linear-gradient(135deg, #0c1e35 0%, #1e3a5f 100%);
         border-radius: 18px;
@@ -406,9 +475,32 @@
         flex-shrink: 0;
         margin-top: 6px;
     }
+
+    /* Alert success */
+    .alert-success {
+        background: #f0fdf4;
+        border: 1.5px solid #bbf7d0;
+        color: #166534;
+        border-radius: 10px;
+        padding: 12px 16px;
+        font-size: 13.5px;
+        font-weight: 600;
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
 </style>
 
 <div class="pgm-root">
+
+    {{-- Alert success --}}
+    @if(session('success'))
+    <div class="alert-success">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+        {{ session('success') }}
+    </div>
+    @endif
 
     {{-- Page Header --}}
     <div class="pgm-header">
@@ -424,8 +516,8 @@
 
     {{-- Stats Row --}}
     @php
-        $totalPengumuman = $pengumuman->count();
-        $pengumumanHariIni = $pengumuman->filter(fn($p) => $p->created_at->isToday())->count();
+        $totalPengumuman    = $pengumuman->count();
+        $pengumumanHariIni  = $pengumuman->filter(fn($p) => $p->created_at->isToday())->count();
         $pengumumanMingguIni = $pengumuman->filter(fn($p) => $p->created_at->isCurrentWeek())->count();
     @endphp
     <div class="pgm-stats">
@@ -485,7 +577,9 @@
                 </div>
                 <div class="pgm-item-content">
                     <div class="pgm-item-top">
-                        <div class="pgm-judul">{{ $item->judul }}</div>
+                        <div>
+                            <div class="pgm-judul">{{ $item->judul }}</div>
+                        </div>
                         @if(auth()->user()->role->nama_role === 'super admin')
                         <div class="pgm-item-actions">
                             <a href="{{ route('pengumuman.edit', $item) }}" class="btn-edit">
@@ -503,11 +597,29 @@
                         </div>
                         @endif
                     </div>
+
+                    {{-- Meta: pembuat + waktu + badge target --}}
                     <div class="pgm-meta">
                         <span>{{ $item->pembuat->nama_lengkap }}</span>
                         <span class="sep"></span>
                         <span>{{ $item->created_at->diffForHumans() }}</span>
+                        <span class="sep"></span>
+                        @php
+                            $badgeClass = ['umum' => 'badge-umum', 'sekolah' => 'badge-sekolah', 'dapur' => 'badge-dapur'];
+                            $badgeLabel = ['umum' => '🌐 Umum', 'sekolah' => '🏫 Sekolah', 'dapur' => '🍳 Dapur'];
+                        @endphp
+                        <span class="badge-target {{ $badgeClass[$item->target_role] ?? 'badge-umum' }}">
+                            {{ $badgeLabel[$item->target_role] ?? 'Umum' }}
+                        </span>
                     </div>
+
+                    {{-- Gambar kalau ada --}}
+                    @if($item->gambar)
+                    <img src="{{ asset('storage/' . $item->gambar) }}"
+                         alt="Gambar pengumuman"
+                         class="pgm-gambar">
+                    @endif
+
                     <p class="pgm-isi">{{ $item->isi }}</p>
                 </div>
             </div>
@@ -536,16 +648,44 @@
                     <h2 class="card-title">Buat Pengumuman Baru</h2>
                 </div>
                 <div class="pgm-form-body">
-                    <form method="POST" action="{{ route('pengumuman.store') }}">
+                    {{-- PENTING: enctype wajib ada untuk upload file --}}
+                    <form method="POST" action="{{ route('pengumuman.store') }}" enctype="multipart/form-data">
                         @csrf
+
                         <div class="form-group">
                             <label>Judul</label>
                             <input type="text" name="judul" placeholder="Judul pengumuman..." required>
                         </div>
+
                         <div class="form-group">
                             <label>Isi Pengumuman</label>
-                            <textarea name="isi" rows="5" placeholder="Tulis isi pengumuman di sini..." required></textarea>
+                            <textarea name="isi" rows="4" placeholder="Tulis isi pengumuman di sini..." required></textarea>
                         </div>
+
+                        {{-- Dropdown Target Role --}}
+                        <div class="form-group">
+                            <label>Ditujukan Untuk</label>
+                            <select name="target_role">
+                                <option value="umum">🌐 Semua Pengguna (Umum)</option>
+                                <option value="sekolah">🏫 Sekolah Saja</option>
+                                <option value="dapur">🍳 Dapur Saja</option>
+                            </select>
+                        </div>
+
+                        {{-- Upload Gambar --}}
+                        <div class="form-group">
+                            <label>Gambar (Opsional)</label>
+                            <div class="file-upload-wrap" onclick="document.getElementById('gambar-input').click()">
+                                <label class="file-upload-label">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                                    <span>Klik untuk pilih gambar atau <span class="highlight">Browse</span></span>
+                                </label>
+                                <input type="file" id="gambar-input" name="gambar" accept="image/*" onchange="previewGambar(event)">
+                                <img id="preview-img" src="" alt="preview">
+                            </div>
+                            <p style="font-size:11.5px; color:#94a3b8; margin:6px 0 0 0; font-weight:500;">Format: JPG, PNG, WEBP — Maks. 2MB</p>
+                        </div>
+
                         <button type="submit" class="btn-publish">Publikasikan Sekarang</button>
                     </form>
                 </div>
@@ -561,15 +701,38 @@
                 </div>
                 <div class="tips-item">
                     <div class="tips-dot"></div>
-                    <span>Sertakan informasi penting seperti tanggal, waktu, dan lokasi jika relevan</span>
+                    <span>Pilih target penerima agar informasi tepat sasaran</span>
                 </div>
                 <div class="tips-item">
                     <div class="tips-dot"></div>
-                    <span>Pengumuman akan langsung terlihat oleh semua pengguna sistem</span>
+                    <span>Tambahkan gambar agar pengumuman lebih menarik perhatian</span>
+                </div>
+                <div class="tips-item">
+                    <div class="tips-dot"></div>
+                    <span>Pengumuman "Umum" akan terlihat oleh semua pengguna sistem</span>
                 </div>
             </div>
         </div>
 
     </div>
 </div>
+
+<script>
+    // Preview gambar sebelum upload
+    function previewGambar(event) {
+        const file = event.target.files[0];
+        const preview = document.getElementById('preview-img');
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                preview.src = e.target.result;
+                preview.style.display = 'block';
+            };
+            reader.readAsDataURL(file);
+        } else {
+            preview.style.display = 'none';
+        }
+    }
+</script>
+
 @endsection
