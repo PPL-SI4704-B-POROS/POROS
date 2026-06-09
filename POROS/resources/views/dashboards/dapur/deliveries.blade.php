@@ -9,19 +9,20 @@
     <main class="main-content">
         @include('partials.header')
 
-        {{-- PAGE HEADER --}}
+        {{-- HEADER HALAMAN --}}
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:2rem;">
             <div>
                 <h1 style="font-size:2rem; font-weight:800; color:#0c1e35;">Logistics & Deliveries</h1>
-                <p style="color:#6b7280; margin-top:0.5rem;">Master stock summary — track ingredient levels</p>
+                <p style="color:#6b7280; margin-top:0.5rem;">Ringkasan Stok Utama — pantau tingkat ketersediaan bahan</p>
             </div>
             <div style="display:flex; gap:0.75rem;">
                 <button onclick="openAddItemModal()" style="background:#0c1e35; color:white; border:none; padding:1rem 1.5rem; border-radius:14px; font-weight:700; cursor:pointer;">
-                    + Add Item
+                    + Tambah Item
+                </button>
             </div>
         </div>
 
-        {{-- FLASH --}}
+        {{-- NOTIFIKASI FLASH --}}
         @if(session('success'))
             <div style="background:#dcfce7; color:#166534; padding:1rem; border-radius:12px; margin-bottom:1rem; font-weight:600;">
                 {{ session('success') }}
@@ -35,39 +36,39 @@
             </div>
         @endif
 
-        {{-- SUMMARY CARDS --}}
+        {{-- KARTU RINGKASAN --}}
         <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:1rem; margin-bottom:2rem;">
             <div class="card">
-                <h3 style="color:#6b7280; margin-bottom:1rem;">Total Items</h3>
+                <h3 style="color:#6b7280; margin-bottom:1rem;">Total Item</h3>
                 <h1 style="font-size:2rem; color:#0c1e35;">{{ $stocks->count() }}</h1>
             </div>
             <div class="card">
-                <h3 style="color:#6b7280; margin-bottom:1rem;">Good Stock</h3>
-                <h1 style="font-size:2rem; color:#22c55e;">{{ $stocks->filter(fn($s) => $s->quantity > 30)->count() }}</h1>
+                <h3 style="color:#6b7280; margin-bottom:1rem;">Stok Aman (Good)</h3>
+                <h1 style="font-size:2rem; color:#22c55e;">{{ $stocks->where('stock_level', 'good')->count() }}</h1>
             </div>
             <div class="card">
-                <h3 style="color:#6b7280; margin-bottom:1rem;">Low Stock</h3>
-                <h1 style="font-size:2rem; color:#f59e0b;">{{ $stocks->filter(fn($s) => $s->quantity > 10 && $s->quantity <= 30)->count() }}</h1>
+                <h3 style="color:#6b7280; margin-bottom:1rem;">Stok Menipis (Low)</h3>
+                <h1 style="font-size:2rem; color:#f59e0b;">{{ $stocks->where('stock_level', 'low')->count() }}</h1>
             </div>
             <div class="card">
-                <h3 style="color:#6b7280; margin-bottom:1rem;">Critical</h3>
-                <h1 style="font-size:2rem; color:#ef4444;">{{ $stocks->filter(fn($s) => $s->quantity <= 10)->count() }}</h1>
+                <h3 style="color:#6b7280; margin-bottom:1rem;">Kritis (Critical)</h3>
+                <h1 style="font-size:2rem; color:#ef4444;">{{ $stocks->where('stock_level', 'critical')->count() }}</h1>
             </div>
         </div>
 
-        {{-- MAIN TABLE --}}
+        {{-- TABEL UTAMA --}}
         <div class="card" style="background:white; border-radius:20px; padding:2rem;">
-            <h2 style="font-size:1.5rem; font-weight:700; color:#0c1e35; margin-bottom:2rem;">Inventory Stock</h2>
+            <h2 style="font-size:1.5rem; font-weight:700; color:#0c1e35; margin-bottom:2rem;">Stok Inventaris</h2>
 
             <table style="width:100%; border-collapse:collapse;">
                 <thead>
                     <tr style="border-bottom:1px solid #e5e7eb; text-align:left;">
                         <th style="padding:1rem;">Status</th>
                         <th style="padding:1rem;">Item</th>
-                        <th style="padding:1rem;">Category</th>
-                        <th style="padding:1rem;">Total Quantity</th>
+                        <th style="padding:1rem;">Kategori</th>
+                        <th style="padding:1rem;">Total Kuantitas</th>
                         <th style="padding:1rem;">Supplier</th>
-                        <th style="padding:1rem;">Action</th>
+                        <th style="padding:1rem;">Aksi</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -76,9 +77,10 @@
                             $level      = $stock->stock_level;
                             $dotColor   = match($level) { 'good' => '#22c55e', 'low' => '#f59e0b', default => '#ef4444' };
                             $qtyColor   = match($level) { 'good' => '#22c55e', 'low' => '#f59e0b', default => '#ef4444' };
+                            
+                            // Warna background lan teks badge kanggo kelas CSS utawa inline style bawaan
                             $badgeBg    = match($level) { 'good' => '#dcfce7', 'low' => '#fef3c7', default => '#fee2e2' };
                             $badgeColor = match($level) { 'good' => '#166534', 'low' => '#92400e', default => '#991b1b' };
-                            $badgeLabel = match($level) { 'good' => 'Good Stock', 'low' => 'Low Stock', default => 'Critical' };
                         @endphp
                         <tr style="border-bottom:1px solid #f3f4f6;">
 
@@ -91,7 +93,7 @@
                                     {{ $stock->bahanBaku->nama_bahan ?? '-' }}
                                 </div>
                                 <div style="font-size:0.85rem; color:#64748b; margin-top:0.3rem;">
-                                    Added: {{ $stock->created_at->format('d M Y') }}
+                                    {{ $stock->status_text }}
                                 </div>
                             </td>
 
@@ -102,12 +104,20 @@
                             </td>
 
                             <td style="padding:1rem;">
-                                <div style="font-weight:700; color:{{ $qtyColor }};">
+                                <div style="font-weight:700; color:{{ $qtyColor }}; margin-bottom:0.4rem;">
                                     {{ $stock->quantity }} {{ $stock->satuan }}
                                 </div>
-                                <span style="background:{{ $badgeBg }}; color:{{ $badgeColor }}; padding:0.3rem 0.6rem; border-radius:999px; font-size:0.75rem; font-weight:600;">
-                                    {{ $badgeLabel }}
-                                </span>
+                                
+                                {{-- OWAHAN BADGE ADHEDHASAR GAMBAR PALING ANYAR --}}
+                                @if(str_contains($stock->status_text, 'Aman'))
+                                    <span style="background:#dcfce7; color:#166534; padding:0.3rem 0.6rem; border-radius:999px; font-size:0.75rem; font-weight:600; display:inline-block;">
+                                        Aman 7 Hari
+                                    </span>
+                                @else
+                                    <span style="background:#fee2e2; color:#991b1b; padding:0.3rem 0.6rem; border-radius:999px; font-size:0.75rem; font-weight:600; display:inline-block;">
+                                        {{ $stock->status_text }}
+                                    </span>
+                                @endif
                             </td>
 
                             <td style="padding:1rem; color:#374151;">
@@ -120,24 +130,24 @@
                                         dusk="stock-btn-{{ $stock->id }}"
                                         onclick="openIncomingModal({{ $stock->id }}, '{{ addslashes($stock->bahanBaku->nama_bahan ?? '') }}')"
                                         style="background:#ff6b00; color:white; border:none; padding:0.5rem 0.9rem; border-radius:10px; font-weight:600; font-size:0.8rem; cursor:pointer;"
-                                    >+ Stock</button>
+                                    >+ Stok</button>
 
                                     <button
                                         dusk="adjust-btn-{{ $stock->id }}"
                                         onclick="openAdjustModal({{ $stock->id }}, '{{ addslashes($stock->bahanBaku->nama_bahan ?? '') }}', {{ $stock->quantity }}, '{{ $stock->satuan }}')"
                                         style="background:#f3f4f6; color:#374151; border:none; padding:0.5rem 0.9rem; border-radius:10px; font-weight:600; font-size:0.8rem; cursor:pointer;"
-                                    >Adjust</button>
+                                    >Sesuaikan</button>
 
                                     <button
                                         dusk="history-btn-{{ $stock->id }}"
                                         onclick="openHistoryModal({{ $stock->id }})"
                                         style="background:#dbeafe; color:#1d4ed8; border:none; padding:0.5rem 0.9rem; border-radius:10px; font-weight:600; font-size:0.8rem; cursor:pointer;"
-                                    >History</button>
+                                    >Riwayat</button>
 
                                     <form method="POST" action="{{ route('stocks.destroy', $stock->id) }}" onsubmit="return confirm('Hapus item ini?')">
                                         @csrf @method('DELETE')
                                         <button type="submit" style="background:#fee2e2; color:#991b1b; border:none; padding:0.5rem 0.9rem; border-radius:10px; font-weight:600; font-size:0.8rem; cursor:pointer;">
-                                            Delete
+                                            Hapus
                                         </button>
                                     </form>
                                 </div>
@@ -147,7 +157,7 @@
                     @empty
                         <tr>
                             <td colspan="6" style="padding:2rem; text-align:center; color:#9ca3af;">
-                                Belum ada item. Klik "+ Add Item" untuk memulai.
+                                Belum ada item. Klik "+ Tambah Item" untuk memulai.
                             </td>
                         </tr>
                     @endforelse
@@ -160,23 +170,23 @@
 
 
 {{-- ═══════════════════════════════════════════ --}}
-{{-- MODAL: ADD ITEM                            --}}
+{{-- MODAL: TAMBAH ITEM                         --}}
 {{-- ═══════════════════════════════════════════ --}}
 <div id="addItemModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); justify-content:center; align-items:center; z-index:999;">
     <div style="background:white; width:460px; border-radius:24px; padding:2rem;">
-        <h2 style="font-size:1.75rem; font-weight:800; color:#0c1e35; margin-bottom:1.75rem;">Add Item to Stock</h2>
+        <h2 style="font-size:1.75rem; font-weight:800; color:#0c1e35; margin-bottom:1.75rem;">Tambah Item ke Stok</h2>
 
         <form action="{{ route('stocks.addItem') }}" method="POST">
             @csrf
             <div style="display:flex; flex-direction:column; gap:1rem;">
 
                 <div>
-                    <label style="font-size:0.85rem; color:#6b7280; font-weight:600; display:block; margin-bottom:0.4rem;">Ingredient</label>
+                    <label style="font-size:0.85rem; color:#6b7280; font-weight:600; display:block; margin-bottom:0.4rem;">Bahan Baku</label>
                     <select name="bahan_baku_id" required style="width:100%; padding:1rem; border:1px solid #d1d5db; border-radius:12px; font-size:0.95rem;">
                         <option value="">-- Pilih Bahan Baku --</option>
                         @foreach($bahanBakus as $bahan)
                             <option value="{{ $bahan->id }}">
-                                {{ $bahan->nama_bahan }} — {{ $bahan->supplier->nama_supplier ?? 'No Supplier' }}
+                                {{ $bahan->nama_bahan }} — {{ $bahan->supplier->nama_supplier ?? 'Tanpa Supplier' }}
                             </option>
                         @endforeach
                     </select>
@@ -195,8 +205,8 @@
 
             </div>
             <div style="display:flex; gap:1rem; margin-top:2rem;">
-                <button type="submit" style="flex:1; background:#0c1e35; color:white; border:none; padding:1rem; border-radius:14px; font-weight:700; cursor:pointer;">Add Item</button>
-                <button type="button" onclick="closeAddItemModal()" style="flex:1; background:#e5e7eb; color:#111827; border:none; padding:1rem; border-radius:14px; font-weight:700; cursor:pointer;">Cancel</button>
+                <button type="submit" style="flex:1; background:#0c1e35; color:white; border:none; padding:1rem; border-radius:14px; font-weight:700; cursor:pointer;">Tambah Item</button>
+                <button type="button" onclick="closeAddItemModal()" style="flex:1; background:#e5e7eb; color:#111827; border:none; padding:1rem; border-radius:14px; font-weight:700; cursor:pointer;">Batal</button>
             </div>
         </form>
     </div>
@@ -204,11 +214,11 @@
 
 
 {{-- ═══════════════════════════════════════════ --}}
-{{-- MODAL: ADD INCOMING STOCK                  --}}
+{{-- MODAL: TAMBAH STOK MASUK                   --}}
 {{-- ═══════════════════════════════════════════ --}}
 <div id="incomingModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); justify-content:center; align-items:center; z-index:999;">
     <div style="background:white; width:460px; border-radius:24px; padding:2rem;">
-        <h2 style="font-size:1.75rem; font-weight:800; color:#0c1e35; margin-bottom:1.75rem;">Add Incoming Stock</h2>
+        <h2 style="font-size:1.75rem; font-weight:800; color:#0c1e35; margin-bottom:1.75rem;">Tambah Stok Masuk</h2>
 
         <form id="incomingForm" method="POST">
             @csrf
@@ -232,30 +242,30 @@
                 </div>
 
                 <div>
-                    <label style="font-size:0.85rem; color:#6b7280; font-weight:600; display:block; margin-bottom:0.4rem;">Quantity to Add</label>
-                    <input type="number" name="quantity" required min="0.01" step="0.01" placeholder="e.g. 50" style="width:100%; padding:1rem; border:1px solid #d1d5db; border-radius:12px;">
+                    <label style="font-size:0.85rem; color:#6b7280; font-weight:600; display:block; margin-bottom:0.4rem;">Jumlah yang Ditambahkan</label>
+                    <input type="number" name="quantity" required min="0.01" step="0.01" placeholder="contoh: 50" style="width:100%; padding:1rem; border:1px solid #d1d5db; border-radius:12px;">
                 </div>
 
                 <div>
-                    <label style="font-size:0.85rem; color:#6b7280; font-weight:600; display:block; margin-bottom:0.4rem;">Incoming Date</label>
+                    <label style="font-size:0.85rem; color:#6b7280; font-weight:600; display:block; margin-bottom:0.4rem;">Tanggal Masuk</label>
                     <input type="date" name="incoming_date" required style="width:100%; padding:1rem; border:1px solid #d1d5db; border-radius:12px;">
                 </div>
 
                 <div>
-                    <label style="font-size:0.85rem; color:#6b7280; font-weight:600; display:block; margin-bottom:0.4rem;">Batch ID <span style="color:#9ca3af; font-weight:400;">(opsional)</span></label>
-                    <input type="text" name="batch_id" placeholder="e.g. BATCH-001" style="width:100%; padding:1rem; border:1px solid #d1d5db; border-radius:12px;">
+                    <label style="font-size:0.85rem; color:#6b7280; font-weight:600; display:block; margin-bottom:0.4rem;">ID Batch <span style="color:#9ca3af; font-weight:400;">(opsional)</span></label>
+                    <input type="text" name="batch_id" placeholder="contoh: BATCH-001" style="width:100%; padding:1rem; border:1px solid #d1d5db; border-radius:12px;">
                 </div>
 
                 <div>
-                    <label style="font-size:0.85rem; color:#6b7280; font-weight:600; display:block; margin-bottom:0.4rem;">Expired Date <span style="color:#9ca3af; font-weight:400;">(opsional)</span></label>
+                    <label style="font-size:0.85rem; color:#6b7280; font-weight:600; display:block; margin-bottom:0.4rem;">Tanggal Kedaluwarsa <span style="color:#9ca3af; font-weight:400;">(opsional)</span></label>
                     <input type="date" name="expired_date" style="width:100%; padding:1rem; border:1px solid #d1d5db; border-radius:12px;">
                 </div>
 
             </div>
 
             <div style="display:flex; gap:1rem; margin-top:2rem;">
-                <button type="submit" style="flex:1; background:#ff6b00; color:white; border:none; padding:1rem; border-radius:14px; font-weight:700; cursor:pointer;">Add Stock</button>
-                <button type="button" onclick="closeIncomingModal()" style="flex:1; background:#e5e7eb; color:#111827; border:none; padding:1rem; border-radius:14px; font-weight:700; cursor:pointer;">Cancel</button>
+                <button type="submit" style="flex:1; background:#ff6b00; color:white; border:none; padding:1rem; border-radius:14px; font-weight:700; cursor:pointer;">Tambah Stok</button>
+                <button type="button" onclick="closeIncomingModal()" style="flex:1; background:#e5e7eb; color:#111827; border:none; padding:1rem; border-radius:14px; font-weight:700; cursor:pointer;">Batal</button>
             </div>
         </form>
     </div>
@@ -263,13 +273,13 @@
 
 
 {{-- ═══════════════════════════════════════════ --}}
-{{-- MODAL: ADJUST STOCK                        --}}
+{{-- MODAL: PENYESUAIAN STOK                    --}}
 {{-- ═══════════════════════════════════════════ --}}
 <div id="adjustModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); justify-content:center; align-items:center; z-index:999;">
     <div style="background:white; width:460px; border-radius:24px; padding:2rem;">
 
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.75rem;">
-            <h2 style="font-size:1.75rem; font-weight:800; color:#0c1e35;">Adjust Stock</h2>
+            <h2 style="font-size:1.75rem; font-weight:800; color:#0c1e35;">Sesuaikan Stok</h2>
             <button onclick="closeAdjustModal()" style="background:#e5e7eb; border:none; width:36px; height:36px; border-radius:999px; font-size:1rem; cursor:pointer;">✕</button>
         </div>
 
@@ -298,19 +308,19 @@
 
                 <div>
                     <label style="font-size:0.85rem; color:#6b7280; font-weight:600; display:block; margin-bottom:0.4rem;">Jumlah</label>
-                    <input type="number" name="adjustment_amount" required min="0.01" step="0.01" placeholder="e.g. 10" style="width:100%; padding:1rem; border:1px solid #d1d5db; border-radius:12px;">
+                    <input type="number" name="adjustment_amount" required min="0.01" step="0.01" placeholder="contoh: 10" style="width:100%; padding:1rem; border:1px solid #d1d5db; border-radius:12px;">
                 </div>
 
                 <div>
                     <label style="font-size:0.85rem; color:#6b7280; font-weight:600; display:block; margin-bottom:0.4rem;">Alasan Koreksi</label>
-                    <input type="text" name="reason" required placeholder="e.g. Barang rusak / Salah input sebelumnya" style="width:100%; padding:1rem; border:1px solid #d1d5db; border-radius:12px;">
+                    <input type="text" name="reason" required placeholder="contoh: Barang rusak / Salah input sebelumnya" style="width:100%; padding:1rem; border:1px solid #d1d5db; border-radius:12px;">
                 </div>
 
             </div>
 
             <div style="display:flex; gap:1rem; margin-top:2rem;">
                 <button type="submit" id="adjustSubmitBtn" style="flex:1; background:#0c1e35; color:white; border:none; padding:1rem; border-radius:14px; font-weight:700; cursor:pointer;">Simpan Koreksi</button>
-                <button type="button" onclick="closeAdjustModal()" style="flex:1; background:#e5e7eb; color:#111827; border:none; padding:1rem; border-radius:14px; font-weight:700; cursor:pointer;">Cancel</button>
+                <button type="button" onclick="closeAdjustModal()" style="flex:1; background:#e5e7eb; color:#111827; border:none; padding:1rem; border-radius:14px; font-weight:700; cursor:pointer;">Batal</button>
             </div>
         </form>
     </div>
@@ -318,36 +328,36 @@
 
 
 {{-- ═══════════════════════════════════════════ --}}
-{{-- MODAL: HISTORY                             --}}
+{{-- MODAL: RIWAYAT                             --}}
 {{-- ═══════════════════════════════════════════ --}}
 <div id="historyModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); justify-content:center; align-items:center; z-index:999;">
     <div style="background:white; width:740px; max-width:95vw; border-radius:24px; padding:2rem; max-height:85vh; overflow-y:auto;">
 
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
             <div>
-                <h2 id="historyTitle" style="font-size:1.75rem; font-weight:800; color:#0c1e35;">Stock History</h2>
+                <h2 id="historyTitle" style="font-size:1.75rem; font-weight:800; color:#0c1e35;">Riwayat Stok</h2>
                 <p id="historySubtitle" style="color:#6b7280; margin-top:0.25rem; font-size:0.9rem;"></p>
             </div>
             <button onclick="closeHistoryModal()" style="background:#e5e7eb; border:none; width:36px; height:36px; border-radius:999px; font-size:1rem; cursor:pointer;">✕</button>
         </div>
 
-        <div id="historyLoading" style="text-align:center; padding:2rem; color:#9ca3af;">Loading...</div>
+        <div id="historyLoading" style="text-align:center; padding:2rem; color:#9ca3af;">Memuat...</div>
 
         <div id="historyTableWrapper" style="display:none;">
             <table style="width:100%; border-collapse:collapse;">
                 <thead>
                     <tr style="border-bottom:1px solid #e5e7eb; text-align:left;">
                         <th style="padding:0.75rem; font-size:0.85rem; color:#6b7280;">Status</th>
-                        <th style="padding:0.75rem; font-size:0.85rem; color:#6b7280;">Quantity</th>
-                        <th style="padding:0.75rem; font-size:0.85rem; color:#6b7280;">Incoming Date</th>
-                        <th style="padding:0.75rem; font-size:0.85rem; color:#6b7280;">Batch ID / Alasan</th>
-                        <th style="padding:0.75rem; font-size:0.85rem; color:#6b7280;">Expired Date</th>
+                        <th style="padding:0.75rem; font-size:0.85rem; color:#6b7280;">Kuantitas</th>
+                        <th style="padding:0.75rem; font-size:0.85rem; color:#6b7280;">Tanggal Masuk</th>
+                        <th style="padding:0.75rem; font-size:0.85rem; color:#6b7280;">ID Batch / Alasan</th>
+                        <th style="padding:0.75rem; font-size:0.85rem; color:#6b7280;">Tanggal Kedaluwarsa</th>
                     </tr>
                 </thead>
                 <tbody id="historyTableBody"></tbody>
             </table>
             <div id="historyEmpty" style="display:none; text-align:center; padding:2rem; color:#9ca3af;">
-                Belum ada history untuk item ini.
+                Belum ada riwayat untuk item ini.
             </div>
         </div>
 
@@ -361,7 +371,7 @@
 <script>
     const BASE_URL = "{{ url('/dashboard/dapur/deliveries') }}";
 
-    // ── ADD ITEM MODAL ────────────────────────────────────
+    // ── MODAL TAMBAH ITEM ────────────────────────────────────
     function openAddItemModal() {
         document.getElementById('addItemModal').style.display = 'flex';
     }
@@ -369,7 +379,7 @@
         document.getElementById('addItemModal').style.display = 'none';
     }
 
-    // ── INCOMING MODAL ────────────────────────────────────
+    // ── MODAL STOK MASUK ────────────────────────────────────
     function openIncomingModal(stockId, itemName) {
         const form          = document.getElementById('incomingForm');
         const selectWrapper = document.getElementById('incomingSelectWrapper');
@@ -406,7 +416,7 @@
         document.getElementById('incomingModal').style.display = 'none';
     }
 
-    // ── ADJUST MODAL ──────────────────────────────────────
+    // ── MODAL PENYESUAIAN STOK ──────────────────────────────────────
     function openAdjustModal(stockId, itemName, currentQty, satuan) {
         const form = document.getElementById('adjustForm');
         form.reset();
@@ -433,7 +443,7 @@
         document.getElementById('adjustModal').style.display = 'none';
     }
 
-    // ── HISTORY MODAL ─────────────────────────────────────
+    // ── MODAL RIWAYAT STOK ─────────────────────────────────────
     function openHistoryModal(stockId) {
         const modal        = document.getElementById('historyModal');
         const loading      = document.getElementById('historyLoading');
@@ -442,7 +452,7 @@
         const emptyEl      = document.getElementById('historyEmpty');
 
         loading.style.display      = 'block';
-        loading.textContent        = 'Loading...';
+        loading.textContent        = 'Memuat...';
         tableWrapper.style.display = 'none';
         modal.style.display        = 'flex';
 
@@ -497,7 +507,7 @@
             tableWrapper.style.display = 'block';
         })
         .catch(() => {
-            loading.textContent = 'Gagal memuat history.';
+            loading.textContent = 'Gagal memuat riwayat.';
         });
     }
 
