@@ -10,6 +10,14 @@ class KatalogPanganSeeder extends Seeder
 {
     public function run(): void
     {
+        // Bersihkan data lama agar IDs konsisten pada setiap test run
+        \Illuminate\Support\Facades\Schema::disableForeignKeyConstraints();
+        \Illuminate\Support\Facades\DB::table('katalog_pangans')->truncate();
+        if (\Illuminate\Support\Facades\DB::getDriverName() === 'sqlite') {
+            \Illuminate\Support\Facades\DB::table('sqlite_sequence')->where('name', 'katalog_pangans')->delete();
+        }
+        \Illuminate\Support\Facades\Schema::enableForeignKeyConstraints();
+
         $csvFile = database_path('data/tkpi_2020.csv');
         
         if (!file_exists($csvFile)) {
@@ -45,7 +53,7 @@ class KatalogPanganSeeder extends Seeder
             ];
             $count++;
 
-            if (count($data) >= 500) {
+            if (count($data) >= 50) {
                 \Illuminate\Support\Facades\DB::table('katalog_pangans')->insert($data);
                 $data = [];
             }
