@@ -6,16 +6,17 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\StokController;
+use App\Http\Controllers\LaporanMasalahController;
 
 use App\Http\Controllers\SuperAdmin\UserController;
 use App\Http\Controllers\SuperAdmin\PengumumanController;
 use App\Http\Controllers\SuperAdmin\AnalyticsController;
+use App\Http\Controllers\SuperAdmin\LaporanMasalahController as AdminLaporanMasalahController;
 use App\Http\Controllers\Dapur\MenuController;
 use App\Http\Controllers\Dapur\ProduksiHarianController;
 use App\Http\Controllers\Dapur\BahanBakusController;
 use App\Http\Controllers\Dapur\SuppliersController;
 use App\Http\Controllers\Sekolah\SiswaController;
-
 
 Route::get('/', function () {
     return redirect()->route('login');
@@ -70,6 +71,11 @@ Route::middleware(['auth'])->group(function () {
         Route::delete('/dashboard/superadmin/pengumuman/{pengumuman}', [PengumumanController::class, 'destroy'])->name('pengumuman.destroy');
 
         Route::get('/dashboard/superadmin/analytics', [AnalyticsController::class, 'index'])->name('superadmin.analytics');
+
+        // ================= LAPORAN MASALAH =================
+        Route::get('/dashboard/superadmin/laporan-masalah', [AdminLaporanMasalahController::class, 'index'])->name('superadmin.laporan-masalah.index');
+        Route::patch('/dashboard/superadmin/laporan-masalah/{laporanMasalah}/status', [AdminLaporanMasalahController::class, 'updateStatus'])->name('superadmin.laporan-masalah.updateStatus');
+        Route::delete('/dashboard/superadmin/laporan-masalah/{laporanMasalah}', [AdminLaporanMasalahController::class, 'destroy'])->name('superadmin.laporan-masalah.destroy');
     });
 
     // =========================================================
@@ -113,12 +119,17 @@ Route::middleware(['auth'])->group(function () {
         // ================= MENU =================
         Route::resource('menu', MenuController::class)->except(['index']);
 
+        // ================= LAPORAN MASALAH =================
+        Route::get('/dashboard/dapur/laporan-masalah', [LaporanMasalahController::class, 'index'])->name('dapur.laporan-masalah.index');
+        Route::post('/dashboard/dapur/laporan-masalah', [LaporanMasalahController::class, 'store'])->name('dapur.laporan-masalah.store');
+        Route::delete('/dashboard/dapur/laporan-masalah/{laporanMasalah}', [LaporanMasalahController::class, 'destroy'])->name('dapur.laporan-masalah.destroy');
     });
 
     // =========================================================
     // SEKOLAH
     // =========================================================
     Route::middleware(['role:sekolah'])->group(function () {
+
         Route::get('/dashboard/sekolah/monitoring', function () {
             return view('dashboards.sekolah.monitoring');
         })->name('dashboard.sekolah.monitoring');
@@ -129,6 +140,11 @@ Route::middleware(['auth'])->group(function () {
         Route::put('/dashboard/sekolah/siswas/{siswa}', [SiswaController::class, 'update'])->name('sekolah.siswas.update');
         Route::delete('/dashboard/sekolah/siswas/{siswa}', [SiswaController::class, 'destroy'])->name('sekolah.siswas.destroy');
         Route::post('/dashboard/sekolah/siswas/{siswa}/antropometri', [SiswaController::class, 'storeAntropometri'])->name('sekolah.siswas.antropometri.store');
+
+        // ================= LAPORAN MASALAH =================
+        Route::get('/dashboard/sekolah/laporan-masalah', [LaporanMasalahController::class, 'index'])->name('sekolah.laporan-masalah.index');
+        Route::post('/dashboard/sekolah/laporan-masalah', [LaporanMasalahController::class, 'store'])->name('sekolah.laporan-masalah.store');
+        Route::delete('/dashboard/sekolah/laporan-masalah/{laporanMasalah}', [LaporanMasalahController::class, 'destroy'])->name('sekolah.laporan-masalah.destroy');
     });
 
 });
