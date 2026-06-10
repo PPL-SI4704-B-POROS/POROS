@@ -50,10 +50,7 @@
                 <span class="nav-text">Logistics & Deliveries</span>
             </a>
         @elseif($role == 'sekolah')
-            <a href="{{ route('sekolah.monitoring') }}" class="nav-link {{ Request::routeIs('sekolah.monitoring') ? 'active' : '' }}">
-                <svg viewBox="0 0 24 24"><path d="M3 21h18M3 10l9-7 9 7v11H3V10z"/><path d="M9 21V11h6v10"/></svg>
-                <span class="nav-text">School Monitoring</span>
-            </a>
+
             <a href="{{ route('sekolah.siswas.index') }}" class="nav-link {{ Request::routeIs('sekolah.siswas.index') ? 'active' : '' }}">
                 <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
                 <span class="nav-text">Data Siswa</span>
