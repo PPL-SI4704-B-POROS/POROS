@@ -118,10 +118,7 @@ Route::middleware(['auth'])->group(function () {
     // SEKOLAH
     // =========================================================
     Route::middleware(['auth', 'role:sekolah'])->prefix('dashboard/sekolah')->name('sekolah.')->group(function () {
-        // Route untuk halaman monitoring
-        Route::get('/monitoring', function () {
-            return view('dashboards.sekolah.monitoring');
-        })->name('monitoring');
+
 
         // FIXED: Diarahkan ke SiswaController, bukan UserController
         Route::get('/siswas', [SiswaController::class, 'index'])->name('siswas.index'); 
