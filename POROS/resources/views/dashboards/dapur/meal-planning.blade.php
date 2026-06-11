@@ -19,6 +19,15 @@
                 <p style="color: var(--text-muted); font-size: 0.95rem; margin-top: 0.25rem;">Rencanakan menu mingguan dan kelola resep secara cerdas.</p>
             </div>
         </div>
+        @if(isset($activeAllergies) && count($activeAllergies) > 0)
+        <div style="background: #fef2f2; border-left: 4px solid #ef4444; padding: 1rem 1.5rem; border-radius: 8px; margin-bottom: 1.5rem; display: flex; align-items: flex-start; gap: 1rem;">
+            <div style="font-size: 1.5rem; color: #ef4444;">⚠️</div>
+            <div>
+                <h4 style="margin: 0 0 0.25rem 0; color: #991b1b; font-size: 0.95rem;">Perhatian: Ada Siswa dengan Alergi Aktif</h4>
+                <p style="margin: 0; color: #b91c1c; font-size: 0.85rem;">Sistem mendeteksi alergi berikut pada siswa aktif: <strong>{{ implode(', ', $activeAllergies) }}</strong>. Menu yang mengandung bahan-bahan ini telah diblokir dan tidak dapat dijadwalkan ke produksi harian.</p>
+            </div>
+        </div>
+        @endif
 
         {{-- ═══ KALENDER MINGGUAN ═══ --}}
         <section class="card">
@@ -348,22 +357,37 @@
                     @foreach($menus as $m)
                     @php
                         $isUnavailable = false;
+                        $unavailableReason = '';
+                        $isAllergic = false;
+                        $allergicReason = '';
                         foreach($m->reseps as $r) {
                             if(!$r->bahanBaku || $r->bahanBaku->trashed() || $r->bahanBaku->stok <= 0) { 
                                 $isUnavailable = true; 
-                                break; 
+                                $unavailableReason = '(Ada bahan yang habis)';
+                            }
+                            if($r->bahanBaku) {
+                                $namaBahan = strtolower($r->bahanBaku->nama_bahan);
+                                foreach($activeAllergies ?? [] as $alergi) {
+                                    if(stripos($namaBahan, strtolower($alergi)) !== false) {
+                                        $isAllergic = true;
+                                        $allergicReason = '(Terlarang: Alergi ' . $alergi . ')';
+                                        break 2;
+                                    }
+                                }
                             }
                         }
+                        $isDisabled = $isUnavailable || $isAllergic;
+                        $reasonText = $isAllergic ? $allergicReason : ($isUnavailable ? $unavailableReason : '');
                     @endphp
                     <option value="{{ $m->id }}"
-                        {{ $isUnavailable ? 'disabled' : '' }}
+                        {{ $isDisabled ? 'disabled' : '' }}
                         data-berat="{{ $m->reseps->sum('gramasi_per_porsi') }}"
                         data-kcal="{{ round($m->total_kalori) }}"
                         data-protein="{{ round($m->total_protein) }}"
                         data-karbo="{{ round($m->total_karbohidrat) }}"
                         data-lemak="{{ round($m->total_lemak) }}"
                         data-modal="{{ $m->harga_modal_per_porsi }}">
-                        {{ $m->nama_menu }} {{ $isUnavailable ? '(Ada bahan yang habis)' : '' }}
+                        {{ $m->nama_menu }} {{ $reasonText }}
                     </option>
                     @endforeach
                 </select>
@@ -407,19 +431,34 @@
                     @foreach($menus as $m)
                     @php
                         $isUnavailable = false;
+                        $unavailableReason = '';
+                        $isAllergic = false;
+                        $allergicReason = '';
                         foreach($m->reseps as $r) {
                             if(!$r->bahanBaku || $r->bahanBaku->trashed() || $r->bahanBaku->stok <= 0) { 
                                 $isUnavailable = true; 
-                                break; 
+                                $unavailableReason = '(Ada bahan yang habis)';
+                            }
+                            if($r->bahanBaku) {
+                                $namaBahan = strtolower($r->bahanBaku->nama_bahan);
+                                foreach($activeAllergies ?? [] as $alergi) {
+                                    if(stripos($namaBahan, strtolower($alergi)) !== false) {
+                                        $isAllergic = true;
+                                        $allergicReason = '(Terlarang: Alergi ' . $alergi . ')';
+                                        break 2;
+                                    }
+                                }
                             }
                         }
+                        $isDisabled = $isUnavailable || $isAllergic;
+                        $reasonText = $isAllergic ? $allergicReason : ($isUnavailable ? $unavailableReason : '');
                     @endphp
                     <option value="{{ $m->id }}"
-                        {{ $isUnavailable ? 'disabled' : '' }}
+                        {{ $isDisabled ? 'disabled' : '' }}
                         data-berat="{{ $m->reseps->sum('gramasi_per_porsi') }}"
                         data-kcal="{{ round($m->total_kalori) }}"
                         data-modal="{{ $m->harga_modal_per_porsi }}">
-                        {{ $m->nama_menu }} {{ $isUnavailable ? '(Ada bahan yang habis)' : '' }}
+                        {{ $m->nama_menu }} {{ $reasonText }}
                     </option>
                     @endforeach
                 </select>

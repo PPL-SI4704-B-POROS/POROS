@@ -15,12 +15,6 @@
     </div>
     
     <nav class="nav-list">
-        <!-- Dashboard Link -->
-        <a href="{{ route('dashboard.index') }}" class="nav-link {{ Request::routeIs('dashboard.index') ? 'active' : '' }}">
-            <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
-            <span class="nav-text">Dashboard</span>
-        </a>
-
         @php
             $role = Auth::user()->role->nama_role;
         @endphp
@@ -56,13 +50,14 @@
                 <span class="nav-text">Logistics & Deliveries</span>
             </a>
         @elseif($role == 'sekolah')
-            <a href="{{ route('dashboard.sekolah.monitoring') }}" class="nav-link {{ Request::routeIs('dashboard.sekolah.monitoring') ? 'active' : '' }}">
-                <svg viewBox="0 0 24 24"><path d="M3 21h18M3 10l9-7 9 7v11H3V10z"/><path d="M9 21V11h6v10"/></svg>
-                <span class="nav-text">School Monitoring</span>
-            </a>
+
             <a href="{{ route('sekolah.siswas.index') }}" class="nav-link {{ Request::routeIs('sekolah.siswas.index') ? 'active' : '' }}">
                 <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
                 <span class="nav-text">Data Siswa</span>
+            </a>
+            <a href="{{ route('sekolah.riwayat-kesehatan.index') }}" class="nav-link {{ Request::routeIs('sekolah.riwayat-kesehatan.index') ? 'active' : '' }}">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+                <span class="nav-text">Riwayat Kesehatan</span>
             </a>
         @endif
     </nav>

@@ -114,20 +114,28 @@ Route::middleware(['auth'])->group(function () {
 
     });
 
-    // =========================================================
+// =========================================================
     // SEKOLAH
     // =========================================================
-    Route::middleware(['role:sekolah'])->group(function () {
-        Route::get('/dashboard/sekolah/monitoring', function () {
-            return view('dashboards.sekolah.monitoring');
-        })->name('dashboard.sekolah.monitoring');
+    Route::middleware(['auth', 'role:sekolah'])->prefix('dashboard/sekolah')->name('sekolah.')->group(function () {
 
-        // Student Management for Sekolah
-        Route::get('/dashboard/sekolah/siswas', [SiswaController::class, 'index'])->name('sekolah.siswas.index');
-        Route::post('/dashboard/sekolah/siswas', [SiswaController::class, 'store'])->name('sekolah.siswas.store');
-        Route::put('/dashboard/sekolah/siswas/{siswa}', [SiswaController::class, 'update'])->name('sekolah.siswas.update');
-        Route::delete('/dashboard/sekolah/siswas/{siswa}', [SiswaController::class, 'destroy'])->name('sekolah.siswas.destroy');
-        Route::post('/dashboard/sekolah/siswas/{siswa}/antropometri', [SiswaController::class, 'storeAntropometri'])->name('sekolah.siswas.antropometri.store');
+
+        // FIXED: Diarahkan ke SiswaController, bukan UserController
+        Route::get('/siswas', [SiswaController::class, 'index'])->name('siswas.index'); 
+        
+        // Route pendukung lainnya (Store, Update, Delete)
+        Route::post('/siswas', [SiswaController::class, 'store'])->name('siswas.store');
+        Route::post('/siswas/import', [SiswaController::class, 'import'])->name('siswas.import');
+        Route::put('/siswas/{siswa}', [SiswaController::class, 'update'])->name('siswas.update');
+        Route::delete('/siswas/bulk-destroy', [SiswaController::class, 'bulkDestroy'])->name('siswas.bulk-destroy');
+        Route::delete('/siswas/{siswa}', [SiswaController::class, 'destroy'])->name('siswas.destroy');
+        Route::post('/siswas/{siswa}/antropometri', [SiswaController::class, 'storeAntropometri'])->name('siswas.antropometri');
+         
+        // Riwayat Kesehatan
+        Route::get('/riwayat-kesehatan', [SiswaController::class, 'riwayatKesehatan'])->name('riwayat-kesehatan.index');
+        Route::post('/riwayat-kesehatan/import', [SiswaController::class, 'importAntropometri'])->name('riwayat-kesehatan.import');
+        Route::delete('/riwayat-kesehatan/bulk-destroy', [SiswaController::class, 'bulkDestroyAntropometri'])->name('riwayat-kesehatan.bulk-destroy');
+        Route::delete('/riwayat-kesehatan/{antropometri}', [SiswaController::class, 'destroyAntropometri'])->name('riwayat-kesehatan.destroy');
     });
 
 });
