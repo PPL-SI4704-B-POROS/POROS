@@ -39,10 +39,6 @@ class StokGudang extends Model
 
     /**
      * Hitung kebutuhan bahan ini per porsi dari data Resep.
-     * Menjumlahkan semua gramasi_per_porsi bahan ini di seluruh menu aktif.
-     * Satuan: gram/porsi (mengikuti satuan gramasi_per_porsi di tabel reseps).
-     *
-     * Mengembalikan 0 jika bahan ini tidak terdaftar di resep manapun.
      */
     public function getGramasiPerPorsiAttribute(): float
     {
@@ -58,7 +54,6 @@ class StokGudang extends Model
 
     /**
      * Hitung kebutuhan bahan ini untuk seluruh siswa aktif (dalam gram).
-     * = gramasi_per_porsi × jumlah_siswa_aktif
      */
     public function getKebutuhanSatuSiklusAttribute(): float
     {
@@ -68,12 +63,6 @@ class StokGudang extends Model
 
     /**
      * Coverage: berapa kali stok saat ini dapat mencukupi kebutuhan 1 siklus.
-     *
-     * - Jika bahan ada di Resep  → coverage = quantity_gram / kebutuhan_satu_siklus
-     * - Jika bahan TIDAK ada di Resep (gramasi = 0) → fallback:
-     * coverage = quantity / jumlah_siswa  (interpretasi: unit-per-siswa)
-     *
-     * Mengembalikan 0 jika siswa = 0.
      */
     public function getCoverageAttribute(): float
     {
@@ -86,35 +75,25 @@ class StokGudang extends Model
         $gramasi = $this->gramasi_per_porsi;
 
         if ($gramasi > 0) {
-            // Konversi quantity ke gram sesuai satuan stok gudang
             $quantityGram = $this->toGram($this->quantity, $this->satuan);
             $kebutuhan    = $gramasi * $totalSiswa;
             return round($quantityGram / $kebutuhan, 4);
         }
 
-        // Fallback: tidak ada data resep, pakai rasio unit/siswa
         return round($this->quantity / $totalSiswa, 4);
     }
 
     /**
-     * OWAHAN UTAMA SAKING GAMBAR PALING ANYAR:
-     * Logika lawas dibusak kabeh, diganti mriksa isi variabel status_text
+     * 3. UBAH STOCK LEVEL LAMA
+     * Mengarah langsung ke stock_indicator agar statistik otomatis mengikuti logika baru.
      */
     public function getStockLevelAttribute(): string
     {
-        if (str_contains($this->status_text, 'Aman')) {
-            return 'good';
-        }
-
-        if (str_contains($this->status_text, 'Cukup sampai')) {
-            return 'low';
-        }
-
-        return 'critical';
+        return $this->stock_indicator;
     }
 
     /**
-     * Menghitung kecukupan stok secara dinamis berdasarkan jadwal menu harian
+     * 2. UBAH STATUS TEXT (Ganti format dadi "Perlu Restock untuk [tanggal]")
      */
     public function getStatusTextAttribute(): string
     {
@@ -122,6 +101,7 @@ class StokGudang extends Model
 
         $jadwal = ProduksiHarian::with('menu.reseps')
             ->whereDate('tanggal_produksi', '>=', now()->toDateString())
+            ->whereNotIn('status_produksi', ['Memasak', 'Selesai'])
             ->orderBy('tanggal_produksi')
             ->take(7)
             ->get();
@@ -140,7 +120,8 @@ class StokGudang extends Model
                         $hari->tanggal_produksi
                     )->translatedFormat('d M Y');
 
-                    return "Cukup sampai {$tanggal}";
+                    // Diubah dadi luwih informatif kanggo Kapala Dapur
+                    return "Perlu Restock untuk {$tanggal}";
                 }
             }
         }
@@ -149,16 +130,58 @@ class StokGudang extends Model
     }
 
     /**
+     * 1. TAMBAH ACCESSOR BARU (Stock Indicator adhedhasar selisih hari)
+     */
+    public function getStockIndicatorAttribute(): string
+    {
+        if ($this->status_text === 'Aman 7 Hari') {
+            return 'good';
+        }
+
+        if (!str_contains($this->status_text, 'Perlu Restock')) {
+            return 'critical';
+        }
+
+        // Regex disesuaikan kanggo nangkep format tanggal (contoh: 13 Jun 2026 utawa 13 Juni 2026)
+        preg_match('/(\d{1,2}\s\w+\s\d{4})/', $this->status_text, $match);
+
+        if (!isset($match[1])) {
+            return 'critical';
+        }
+
+        // Parse tanggal nggunakake format lokal Indonesia (Locale Aware)
+        try {
+            $tanggalRestock = \Carbon\Carbon::parse($match[1]);
+        } catch (\Exception $e) {
+            return 'critical';
+        }
+
+        $selisihHari = now()->startOfDay()->diffInDays(
+            $tanggalRestock->startOfDay(),
+            false
+        );
+
+        // Logika Status Warna adhedhasar sisa hari
+        if ($selisihHari <= 2) {
+            return 'critical'; // Abang 🔴
+        }
+
+        if ($selisihHari <= 4) {
+            return 'low'; // Kuning 🟡
+        }
+
+        return 'good'; // Ijo 🟢
+    }
+
+    /**
      * Helper: konversi quantity ke gram berdasarkan satuan stok gudang.
-     * Mendukung: gram, kg, ml, liter.
-     * Satuan lain dikembalikan apa adanya (diasumsikan sudah dalam unit dasar).
      */
     private function toGram(float $quantity, string $satuan): float
     {
         return match (strtolower(trim($satuan))) {
             'kg'    => $quantity * 1000,
             'liter' => $quantity * 1000,
-            default => $quantity, // gram, ml, atau satuan lain
+            default => $quantity,
         };
     }
 }

@@ -61,30 +61,36 @@ class ProduksiHarianController extends Controller
             return redirect()->back()->with('info', 'Status produksi tidak berubah.');
         }
 
-        // Jika berubah MENJADI 'Memasak' (Mulai masak) dari 'Menunggu', lakukan pemotongan stok!
+        // Jika berubah MENJADI 'Memasak' (Mulai masak) dari 'Menunggu', lakukan pemotongan stok gudang!
         if ($newStatus === 'Memasak' && $oldStatus === 'Menunggu') {
             try {
                 DB::transaction(function () use ($schedule, $newStatus) {
                     $menu = $schedule->menu;
                     $porsi = $schedule->total_target_porsi;
 
-                    // 1. Validasi stok semua bahan baku mencukupi
+                    // 1. Validasi stok semua bahan baku mencukupi di StokGudang
                     foreach ($menu->reseps as $resep) {
-                        $bahan = $resep->bahanBaku;
+                        $stokGudang = \App\Models\StokGudang::where('bahan_baku_id', $resep->bahan_id)->first();
                         $kebutuhanG = $resep->gramasi_per_porsi * $porsi;
 
-                        if ($bahan->stok < $kebutuhanG) {
+                        if (!$stokGudang) {
+                            throw new \Exception("Stok gudang untuk {$resep->bahanBaku->nama_bahan} tidak ditemukan.");
+                        }
+
+                        if ($stokGudang->quantity < $kebutuhanG) {
                             $kebutuhanKgStr = ($kebutuhanG >= 1000) ? number_format($kebutuhanG / 1000, 2, ',', '.') . ' kg' : number_format($kebutuhanG, 0, ',', '.') . ' g';
-                            $tersediaKgStr = ($bahan->stok >= 1000) ? number_format($bahan->stok / 1000, 2, ',', '.') . ' kg' : number_format($bahan->stok, 0, ',', '.') . ' g';
-                            throw new \Exception("Stok bahan mentah '{$bahan->nama_bahan}' di gudang tidak mencukupi! Dibutuhkan: {$kebutuhanKgStr}, tersedia di inventori: {$tersediaKgStr}.");
+                            $tersediaKgStr = ($stokGudang->quantity >= 1000) ? number_format($stokGudang->quantity / 1000, 2, ',', '.') . ' kg' : number_format($stokGudang->quantity, 0, ',', '.') . ' g';
+                            
+                            throw new \Exception("Stok gudang '{$resep->bahanBaku->nama_bahan}' tidak mencukupi! Dibutuhkan: {$kebutuhanKgStr}, tersedia di inventori gudang: {$tersediaKgStr}.");
                         }
                     }
 
-                    // 2. Jika aman, potong stok bahan baku secara otomatis
+                    // 2. Jika aman, potong stok_gudang.quantity secara otomatis
                     foreach ($menu->reseps as $resep) {
-                        $bahan = $resep->bahanBaku;
+                        $stokGudang = \App\Models\StokGudang::where('bahan_baku_id', $resep->bahan_id)->first();
                         $kebutuhanG = $resep->gramasi_per_porsi * $porsi;
-                        $bahan->decrement('stok', $kebutuhanG);
+                        
+                        $stokGudang->decrement('quantity', $kebutuhanG);
                     }
 
                     $schedule->update([
@@ -108,16 +114,19 @@ class ProduksiHarianController extends Controller
     {
         $schedule = ProduksiHarian::findOrFail($id);
 
-        // Jika sedang memasak atau sudah siap kirim, kembalikan stok bahan mentah saat jadwal dibatalkan/dihapus
+        // Jika sedang memasak atau sudah siap kirim, kembalikan stok_gudang.quantity saat jadwal dibatalkan/dihapus
         if ($schedule->status_produksi === 'Memasak' || $schedule->status_produksi === 'Siap Kirim') {
             DB::transaction(function () use ($schedule) {
                 $menu = $schedule->menu;
                 $porsi = $schedule->total_target_porsi;
 
                 foreach ($menu->reseps as $resep) {
-                    $bahan = $resep->bahanBaku;
+                    $stokGudang = \App\Models\StokGudang::where('bahan_baku_id', $resep->bahan_id)->first();
                     $kebutuhanG = $resep->gramasi_per_porsi * $porsi;
-                    $bahan->increment('stok', $kebutuhanG);
+
+                    if ($stokGudang) {
+                        $stokGudang->increment('quantity', $kebutuhanG);
+                    }
                 }
             });
         }
