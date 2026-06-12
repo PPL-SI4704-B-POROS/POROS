@@ -103,7 +103,7 @@ class FormHargaSeeder extends Seeder
             ];
         }
 
-        $chunks = array_chunk($prices, 500);
+        $chunks = array_chunk($prices, 50);
         foreach ($chunks as $chunk) {
             DB::table('form_hargas')->insert($chunk);
         }

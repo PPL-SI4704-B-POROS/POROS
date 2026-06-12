@@ -59,6 +59,7 @@ class MealPlanningTest extends DuskTestCase
                     ->select('menu_id', $menu->id)
                     ->press('Jadwalkan')
                     ->waitUntilMissing('#scheduleModal');
+
             $browser->waitFor('.btn-view')
                     ->click('.btn-view')
                     ->waitFor('#viewScheduleModal', 10)
@@ -140,7 +141,7 @@ class MealPlanningTest extends DuskTestCase
                     ->press('Jadwalkan')
                     ->waitUntilMissing('#scheduleModal');
 
-            $browser->click('.btn-edit')
+            $browser->click('button.btn-edit:not([disabled])')
                     ->waitFor('#editScheduleModal')
                     ->clear('#editPortionInput')
                     ->type('#editPortionInput', '300')
@@ -165,7 +166,7 @@ class MealPlanningTest extends DuskTestCase
                     ->press('Jadwalkan')
                     ->waitUntilMissing('#scheduleModal');
 
-            $browser->click('.btn-edit')
+            $browser->click('button.btn-edit:not([disabled])')
                     ->waitFor('#editScheduleModal')
                     ->clear('#editPortionInput')
                     ->type('#editPortionInput', '0')
@@ -189,12 +190,175 @@ class MealPlanningTest extends DuskTestCase
                     ->press('Jadwalkan')
                     ->waitUntilMissing('#scheduleModal');
 
-            $browser->click('.btn-del')
+            $browser->click('button.btn-del:not([disabled])')
                     ->acceptDialog()
                     ->waitFor('.week-grid', 10)
                     ->with('.week-grid', function ($grid) use ($menu) {
                         $grid->assertDontSee($menu->nama_menu);
                     });
+        });
+    }
+
+    #[Test]
+    public function test_pbi16_tc01_delete_menu_positive(): void
+    {
+        $this->browse(function (Browser $browser) {
+            $user = User::where('email', 'dapur@poros.com')->first();
+            $menu = Menu::first();
+
+            $browser->loginAs($user)
+                    ->visit('/dashboard/dapur/meal-planning')
+                    ->click('.btn-delete-menu')
+                    ->waitFor('#deleteConfirmModal')
+                    ->click('.btn-confirm-delete')
+                    ->pause(1500)
+                    ->assertPathIs('/dashboard/dapur/meal-planning')
+                    ->assertDontSee($menu->nama_menu);
+        });
+    }
+
+    #[Test]
+    public function test_pbi16_tc02_cancel_delete_menu(): void
+    {
+        $this->browse(function (Browser $browser) {
+            $user = User::where('email', 'dapur@poros.com')->first();
+            $menu = Menu::first();
+
+            $browser->loginAs($user)
+                    ->visit('/dashboard/dapur/meal-planning')
+                    ->click('.btn-delete-menu')
+                    ->waitFor('#deleteConfirmModal')
+                    ->click('.btn-cancel')
+                    ->waitUntilMissing('#deleteConfirmModal')
+                    ->assertSee($menu->nama_menu);
+        });
+    }
+
+    #[Test]
+    public function test_pbi16_tc03_delete_menu_shows_modal(): void
+    {
+        $this->browse(function (Browser $browser) {
+            $user = User::where('email', 'dapur@poros.com')->first();
+
+            $browser->loginAs($user)
+                    ->visit('/dashboard/dapur/meal-planning')
+                    ->click('.btn-delete-menu')
+                    ->waitFor('#deleteConfirmModal')
+                    ->assertSee('Hapus Menu?');
+        });
+    }
+
+    #[Test]
+    public function test_pbi17_tc01_read_kalkulator_porsi_positive(): void
+    {
+        $this->browse(function (Browser $browser) {
+            $user = User::where('email', 'dapur@poros.com')->first();
+            $menu = Menu::first();
+
+            $browser->loginAs($user)
+                    ->visit('/dashboard/dapur/meal-planning')
+                    ->click('.add-menu-link')
+                    ->waitFor('#scheduleModal')
+                    ->select('menu_id', $menu->id)
+                    ->type('#schedulePortionInput', '150')
+                    ->waitFor('#portionPreview')
+                    ->assertSeeIn('#portionPreview', 'Berat / porsi')
+                    ->assertSeeIn('#portionPreview', 'Kalori / porsi')
+                    ->assertSeeIn('#portionPreview', 'Total Berat');
+        });
+    }
+
+    #[Test]
+    public function test_pbi17_tc02_kalkulator_porsi_update(): void
+    {
+        $this->browse(function (Browser $browser) {
+            $user = User::where('email', 'dapur@poros.com')->first();
+            $menu = Menu::first();
+
+            $browser->loginAs($user)
+                    ->visit('/dashboard/dapur/meal-planning')
+                    ->click('.add-menu-link')
+                    ->waitFor('#scheduleModal')
+                    ->select('menu_id', $menu->id)
+                    ->type('#schedulePortionInput', '100')
+                    ->waitFor('#portionPreview')
+                    ->assertSeeIn('#pvTotal', '100 porsi')
+                    ->clear('#schedulePortionInput')
+                    ->type('#schedulePortionInput', '200')
+                    ->assertSeeIn('#pvTotal', '200 porsi');
+        });
+    }
+
+    #[Test]
+    public function test_pbi17_tc03_kalkulator_porsi_hidden_on_empty(): void
+    {
+        $this->browse(function (Browser $browser) {
+            $user = User::where('email', 'dapur@poros.com')->first();
+            $menu = Menu::first();
+
+            $browser->loginAs($user)
+                    ->visit('/dashboard/dapur/meal-planning')
+                    ->click('.add-menu-link')
+                    ->waitFor('#scheduleModal')
+                    ->select('menu_id', $menu->id)
+                    ->type('#schedulePortionInput', '150')
+                    ->waitFor('#portionPreview')
+                    ->select('menu_id', '')
+                    ->waitUntilMissing('#portionPreview');
+        });
+    }
+
+    #[Test]
+    public function test_pbi18_tc01_read_total_modal_menu_library(): void
+    {
+        $this->browse(function (Browser $browser) {
+            $user = User::where('email', 'dapur@poros.com')->first();
+
+            $browser->loginAs($user)
+                    ->visit('/dashboard/dapur/meal-planning')
+                    ->assertSee('Modal: Rp');
+        });
+    }
+
+    #[Test]
+    public function test_pbi18_tc02_read_total_modal_schedule_calculator(): void
+    {
+        $this->browse(function (Browser $browser) {
+            $user = User::where('email', 'dapur@poros.com')->first();
+            $menu = Menu::first();
+
+            $browser->loginAs($user)
+                    ->visit('/dashboard/dapur/meal-planning')
+                    ->click('.add-menu-link')
+                    ->waitFor('#scheduleModal')
+                    ->select('menu_id', $menu->id)
+                    ->type('#schedulePortionInput', '100')
+                    ->waitFor('#portionPreview')
+                    ->assertSeeIn('#portionPreview', 'Estimasi Modal / porsi')
+                    ->assertSeeIn('#portionPreview', 'Total Anggaran Modal');
+        });
+    }
+
+    #[Test]
+    public function test_pbi18_tc03_read_total_modal_view_schedule(): void
+    {
+        $this->browse(function (Browser $browser) {
+            $user = User::where('email', 'dapur@poros.com')->first();
+            $menu = Menu::first();
+
+            $browser->loginAs($user)
+                    ->visit('/dashboard/dapur/meal-planning')
+                    ->click('.add-menu-link')
+                    ->waitFor('#scheduleModal')
+                    ->select('menu_id', $menu->id)
+                    ->type('#schedulePortionInput', '150')
+                    ->press('Jadwalkan')
+                    ->waitUntilMissing('#scheduleModal');
+
+            $browser->click('.btn-view')
+                    ->waitFor('#viewScheduleModal')
+                    ->assertSeeIn('#viewScheduleModal', 'Modal: Rp')
+                    ->assertSeeIn('#viewScheduleModal', 'Total Modal: Rp');
         });
     }
 }
