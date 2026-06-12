@@ -7,6 +7,7 @@ use App\Models\BahanBaku;
 use App\Models\Supplier;
 use App\Models\FormHarga;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class BahanBakusController extends Controller
 {
@@ -20,12 +21,21 @@ class BahanBakusController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'nama_bahan' => 'required|string|max:255',
+            'nama_bahan' => [
+                'required',
+                'string',
+                'max:255',
+                Rule::unique('bahan_bakus', 'nama_bahan')
+                    ->where('supplier_id', $request->supplier_id)
+                    ->whereNull('deleted_at') 
+            ],
             'stok' => 'required|numeric',
             'satuan' => 'required|in:kg,gram,liter,ml',
             'stok_minimal' => 'required|numeric',
             'supplier_id' => 'required|exists:suppliers,id',
             'harga' => 'required|numeric|min:0'
+            ], [
+                'nama_bahan.unique' => 'Bahan baku dengan nama tersebut sudah terdaftar pada supplier ini.'
         ]);
 
         $bahan = BahanBaku::create($validated);
@@ -54,12 +64,22 @@ class BahanBakusController extends Controller
     public function update(Request $request, $id)
     {
         $validated = $request->validate([
-            'nama_bahan' => 'required|string|max:255',
+            'nama_bahan' => [
+                'required',
+                'string',
+                'max:255',
+                Rule::unique('bahan_bakus', 'nama_bahan')
+                    ->where('supplier_id', $request->supplier_id)
+                    ->whereNull('deleted_at')
+                    ->ignore($id)      
+            ],
             'stok' => 'required|numeric',
             'satuan' => 'required|in:kg,gram,liter,ml',
             'stok_minimal' => 'required|numeric',
             'supplier_id' => 'required|exists:suppliers,id',
             'harga' => 'required|numeric|min:0'
+        ], [
+            'nama_bahan.unique' => 'Bahan baku dengan nama tersebut sudah terdaftar pada supplier ini.'
         ]);
 
         $bahanBaku = BahanBaku::findOrFail($id);

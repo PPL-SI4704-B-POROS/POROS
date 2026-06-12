@@ -5,16 +5,25 @@ namespace App\Http\Controllers\Dapur;
 use App\Http\Controllers\Controller;
 use App\Models\Supplier;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class SuppliersController extends Controller
 {
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'nama_supplier' => 'required|string|max:255',
+            'nama_supplier' => [
+            'required',
+            'string',
+            'max:255',
+            Rule::unique('suppliers', 'nama_supplier')->whereNull('deleted_at')
+        ],
             'kontak' => 'required|string|max:50',
-            'alamat' => 'nullable|string'
-        ]);
+            'alamat' => 'required|string|max:255'
+        ], [
+            'nama_supplier.unique' => 'Nama supplier ini sudah terdaftar di sistem. Silakan input nama lain.',
+            'nama_supplier.required' => 'Nama supplier tidak boleh kosong.'
+         ]);
 
         Supplier::create($validated);
         return redirect()->route('inventory.index')->with('success', 'Supplier berhasil ditambahkan!');
@@ -22,9 +31,7 @@ class SuppliersController extends Controller
 
     public function edit($id)
     {
-        // Ambil semua data untuk ditampilkan di tabel
         $suppliers = Supplier::with('bahanBakus')->get();
-        // Ambil data supplier spesifik yang mau diedit
         $supplierEdit = Supplier::findOrFail($id);
 
         return view('dashboards.dapur.inventory', compact('suppliers', 'supplierEdit'));
@@ -33,9 +40,17 @@ class SuppliersController extends Controller
     public function update(Request $request, $id)
     {
         $validated = $request->validate([
-            'nama_supplier' => 'required|string|max:255',
+            'nama_supplier' => [
+            'required',
+            'string',
+            'max:255',
+            // Abaikan yang sudah dihapus, dan abaikan ID dirinya sendiri saat edit
+            Rule::unique('suppliers', 'nama_supplier')
+                ->whereNull('deleted_at')
+                ->ignore($id)
+        ],
             'kontak' => 'required|string|max:50',
-            'alamat' => 'nullable|string'
+            'alamat' => 'required|string|max:255'
         ]);
 
         $supplier = Supplier::findOrFail($id);
