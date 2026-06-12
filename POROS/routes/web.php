@@ -1,21 +1,19 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
-
 use App\Http\Controllers\AuthController;
-use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\StokController;
-
-use App\Http\Controllers\SuperAdmin\UserController;
-use App\Http\Controllers\SuperAdmin\PengumumanController;
-use App\Http\Controllers\SuperAdmin\AnalyticsController;
+use App\Http\Controllers\Dapur\BahanBakusController;
 use App\Http\Controllers\Dapur\MenuController;
 use App\Http\Controllers\Dapur\ProduksiHarianController;
-use App\Http\Controllers\Dapur\BahanBakusController;
 use App\Http\Controllers\Dapur\SuppliersController;
+use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Sekolah\SiswaController;
-
+use App\Http\Controllers\StokController;
+use App\Http\Controllers\SuperAdmin\AnalyticsController;
+use App\Http\Controllers\SuperAdmin\PengirimanController;
+use App\Http\Controllers\SuperAdmin\PengumumanController;
+use App\Http\Controllers\SuperAdmin\UserController;
+use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
     return redirect()->route('login');
@@ -69,6 +67,11 @@ Route::middleware(['auth'])->group(function () {
         Route::put('/dashboard/superadmin/pengumuman/{pengumuman}', [PengumumanController::class, 'update'])->name('pengumuman.update');
 
         Route::get('/dashboard/superadmin/analytics', [AnalyticsController::class, 'index'])->name('superadmin.analytics');
+
+        // ===== PENGIRIMAN =====
+        Route::get('/dashboard/superadmin/deliveries', [PengirimanController::class, 'index'])->name('superadmin.deliveries.index');
+        Route::post('/dashboard/superadmin/deliveries/{id}/status', [PengirimanController::class, 'updateStatus'])->name('superadmin.deliveries.updateStatus');
+        Route::post('/dashboard/superadmin/deliveries/{id}/handover', [PengirimanController::class, 'updateHandover'])->name('superadmin.deliveries.updateHandover');
     });
 
     // =========================================================
@@ -89,12 +92,12 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/dashboard/dapur/inventory', [BahanBakusController::class, 'index'])->name('inventory.index');
 
         // ================= DELIVERIES =================
-        Route::get('/dashboard/dapur/deliveries',                      [StokController::class, 'index'])->name('stocks.index');
-        Route::post('/dashboard/dapur/deliveries/add-item',            [StokController::class, 'addItem'])->name('stocks.addItem');
-        Route::post('/dashboard/dapur/deliveries/{id}/incoming',       [StokController::class, 'addIncoming'])->name('stocks.addIncoming');
-        Route::post('/dashboard/dapur/deliveries/{id}/adjust',         [StokController::class, 'adjustStock'])->name('stocks.adjust');
-        Route::delete('/dashboard/dapur/deliveries/{id}',              [StokController::class, 'destroy'])->name('stocks.destroy');
-        Route::get('/dashboard/dapur/deliveries/{id}/history',         [StokController::class, 'history'])->name('stocks.history');
+        Route::get('/dashboard/dapur/deliveries', [StokController::class, 'index'])->name('stocks.index');
+        Route::post('/dashboard/dapur/deliveries/add-item', [StokController::class, 'addItem'])->name('stocks.addItem');
+        Route::post('/dashboard/dapur/deliveries/{id}/incoming', [StokController::class, 'addIncoming'])->name('stocks.addIncoming');
+        Route::post('/dashboard/dapur/deliveries/{id}/adjust', [StokController::class, 'adjustStock'])->name('stocks.adjust');
+        Route::delete('/dashboard/dapur/deliveries/{id}', [StokController::class, 'destroy'])->name('stocks.destroy');
+        Route::get('/dashboard/dapur/deliveries/{id}/history', [StokController::class, 'history'])->name('stocks.history');
 
         // ================= CRUD BAHAN BAKU =================
         Route::post('/bahan-bakus', [BahanBakusController::class, 'store'])->name('bahan-bakus.store');
@@ -114,15 +117,14 @@ Route::middleware(['auth'])->group(function () {
 
     });
 
-// =========================================================
+    // =========================================================
     // SEKOLAH
     // =========================================================
     Route::middleware(['auth', 'role:sekolah'])->prefix('dashboard/sekolah')->name('sekolah.')->group(function () {
 
-
         // FIXED: Diarahkan ke SiswaController, bukan UserController
-        Route::get('/siswas', [SiswaController::class, 'index'])->name('siswas.index'); 
-        
+        Route::get('/siswas', [SiswaController::class, 'index'])->name('siswas.index');
+
         // Route pendukung lainnya (Store, Update, Delete)
         Route::post('/siswas', [SiswaController::class, 'store'])->name('siswas.store');
         Route::post('/siswas/import', [SiswaController::class, 'import'])->name('siswas.import');
@@ -130,7 +132,7 @@ Route::middleware(['auth'])->group(function () {
         Route::delete('/siswas/bulk-destroy', [SiswaController::class, 'bulkDestroy'])->name('siswas.bulk-destroy');
         Route::delete('/siswas/{siswa}', [SiswaController::class, 'destroy'])->name('siswas.destroy');
         Route::post('/siswas/{siswa}/antropometri', [SiswaController::class, 'storeAntropometri'])->name('siswas.antropometri');
-         
+
         // Riwayat Kesehatan
         Route::get('/riwayat-kesehatan', [SiswaController::class, 'riwayatKesehatan'])->name('riwayat-kesehatan.index');
         Route::post('/riwayat-kesehatan/import', [SiswaController::class, 'importAntropometri'])->name('riwayat-kesehatan.import');

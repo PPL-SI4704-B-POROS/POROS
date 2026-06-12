@@ -8,6 +8,7 @@ use App\Models\BiayaBelanja;
 use App\Models\PlateWaste;
 use App\Models\Sekolah;
 use App\Models\User;
+use App\Models\Pengiriman;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -114,47 +115,43 @@ class AnalyticsController extends Controller
         $giziKurang = (clone $queryAntropometri)->whereIn('antropometris.status_gizi', ['Kurus', 'Kurang'])->count();
         $giziLebih = (clone $queryAntropometri)->whereIn('antropometris.status_gizi', ['Gemuk', 'Obesitas'])->count();
 
-        // --- PBI-36: Logic Waste ---
-        $queryWaste = PlateWaste::query();
+        // --- PBI-36: Logic Waste (Synchronized with Logistics) ---
+        $queryPengiriman = Pengiriman::query();
         if ($selectedSekolah !== 'all') {
-            $queryWaste->where('sekolah_id', $selectedSekolah);
+            $queryPengiriman->where('sekolah_id', $selectedSekolah);
         }
         if ($startDate && $endDate) {
-            $queryWaste->whereBetween('tanggal', [$startDate, $endDate]);
+            $queryPengiriman->whereBetween('created_at', [$startDate, $endDate]);
         }
 
-        // Hitung total kg waste per kategori alasan
-        $wasteData = (clone $queryWaste)->select(
+        // Hitung frekuensi waste per kategori alasan dari feedback pengiriman
+        $wasteData = (clone $queryPengiriman)->select(
             'keterangan',
-            DB::raw('COUNT(*) as total_frekuensi'),
-            DB::raw('SUM(jumlah_waste) as total_kg')
+            DB::raw('COUNT(*) as total_frekuensi')
         )
             ->whereNotNull('keterangan')
             ->where('keterangan', '<>', '')
             ->groupBy('keterangan')
-            ->get() ?? collect();
+            ->get()
+            ->map(function($item) {
+                // Map total_frekuensi to total_kg to keep frontend chart compatibility
+                $item->total_kg = $item->total_frekuensi;
+                return $item;
+            }) ?? collect();
 
-        // Total akumulasi sampah makanan
-        $totalWasteKg = (clone $queryWaste)->sum('jumlah_waste') ?? 0;
+        // Total akumulasi sampah makanan (menggunakan frekuensi feedback sebagai basis)
+        $totalWasteKg = $wasteData->sum('total_frekuensi') ?? 0;
 
-        // Top 3 Waste Menu berdasarkan volume berat sisa makanan (kg)
-        $topWasteMenus = PlateWaste::query()
-            ->join('pengirimans', 'plate_wastes.pengiriman_id', '=', 'pengirimans.id')
-            ->join('produksi_harians', 'pengirimans.produksi_id', '=', 'produksi_harians.id')
-            ->join('menus', 'produksi_harians.menu_id', '=', 'menus.id')
-            ->whereNull('pengirimans.deleted_at')
-            ->whereNull('produksi_harians.deleted_at')
-            ->whereNull('menus.deleted_at');
+        // Top 3 Waste Menu berdasarkan input top 3 di logistik
+        $topWaste1 = (clone $queryPengiriman)->select('waste_menu_1 as menu_name')->whereNotNull('waste_menu_1')->where('waste_menu_1', '<>', '');
+        $topWaste2 = (clone $queryPengiriman)->select('waste_menu_2 as menu_name')->whereNotNull('waste_menu_2')->where('waste_menu_2', '<>', '');
+        $topWaste3 = (clone $queryPengiriman)->select('waste_menu_3 as menu_name')->whereNotNull('waste_menu_3')->where('waste_menu_3', '<>', '');
 
-        if ($selectedSekolah !== 'all') {
-            $topWasteMenus->where('plate_wastes.sekolah_id', $selectedSekolah);
-        }
-        if ($startDate && $endDate) {
-            $topWasteMenus->whereBetween('plate_wastes.tanggal', [$startDate, $endDate]);
-        }
-
-        $topMenus = $topWasteMenus->select('menus.nama_menu', DB::raw('SUM(plate_wastes.jumlah_waste) as total_waste'))
-            ->groupBy('menus.nama_menu')
+        $topMenusRaw = $topWaste1->unionAll($topWaste2)->unionAll($topWaste3);
+        
+        $topMenus = DB::query()->fromSub($topMenusRaw, 'combined_waste')
+            ->select('menu_name as nama_menu', DB::raw('COUNT(*) as total_waste'))
+            ->groupBy('menu_name')
             ->orderByDesc('total_waste')
             ->limit(3)
             ->get() ?? collect();

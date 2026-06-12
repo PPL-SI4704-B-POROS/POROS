@@ -28,6 +28,10 @@
                 <svg viewBox="0 0 24 24"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
                 <span class="nav-text">Suppliers & Bidding</span>
             </a>
+            <a href="{{ route('superadmin.deliveries.index') }}" class="nav-link {{ Request::routeIs('superadmin.deliveries.index') ? 'active' : '' }}">
+                <svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                <span class="nav-text">Logistics & Deliveries</span>
+            </a>
             <a href="{{ route('superadmin.analytics') }}" class="nav-link {{ Request::routeIs('superadmin.analytics') ? 'active' : '' }}">
                 <svg viewBox="0 0 24 24"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/></svg>
                 <span class="nav-text">Analytics</span>
