@@ -14,14 +14,8 @@ use App\Http\Controllers\Dapur\BahanBakusController;
 use App\Http\Controllers\Dapur\MenuController;
 use App\Http\Controllers\Dapur\ProduksiHarianController;
 use App\Http\Controllers\Dapur\SuppliersController;
-use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Sekolah\SiswaController;
-use App\Http\Controllers\StokController;
-use App\Http\Controllers\SuperAdmin\AnalyticsController;
 use App\Http\Controllers\SuperAdmin\PengirimanController;
-use App\Http\Controllers\SuperAdmin\PengumumanController;
-use App\Http\Controllers\SuperAdmin\UserController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -147,6 +141,9 @@ Route::middleware(['auth'])->group(function () {
 
         // ================= SISWA =================
         Route::get('/siswas', [SiswaController::class, 'index'])->name('siswas.index');
+    
+    });
+        
     Route::middleware(['auth', 'role:sekolah'])->prefix('dashboard/sekolah')->name('sekolah.')->group(function () {
 
         // FIXED: Diarahkan ke SiswaController, bukan UserController
