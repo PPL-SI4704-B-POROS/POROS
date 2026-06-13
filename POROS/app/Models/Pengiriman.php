@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Pengiriman extends Model
@@ -46,5 +47,10 @@ class Pengiriman extends Model
     public function kurir(): BelongsTo
     {
         return $this->belongsTo(Kurir::class);
+    }
+
+    public function plateWastes(): HasMany
+    {
+        return $this->hasMany(PlateWaste::class, 'pengiriman_id');
     }
 }

@@ -538,7 +538,7 @@
                 ctx.fillStyle = "#0c1e35";
                 ctx.textBaseline = "middle";
                 ctx.textAlign = "center";
-                const textValue = visibleTotal.toFixed(1).replace('.', ',') + " kg";
+                const textValue = visibleTotal.toFixed(0) + " porsi";
                 ctx.fillText(textValue, x, y - 8);
                 
                 // Draw Label (TOTAL SISA)
@@ -587,7 +587,7 @@
                     callbacks: {
                         label: function(context) {
                             const value = context.parsed;
-                            return ' ' + context.label + ': ' + Number(value).toFixed(1).replace('.', ',') + ' kg';
+                            return ' ' + context.label + ': ' + Number(value).toFixed(0) + ' porsi';
                         }
                     }
                 }
@@ -626,7 +626,7 @@
                     backgroundColor: 'rgba(12, 30, 53, 0.95)',
                     callbacks: {
                         label: function(context) {
-                            return ' Total Sisa: ' + Number(context.parsed.x).toFixed(1).replace('.', ',') + ' kg';
+                            return ' Total Sisa: ' + Number(context.parsed.x).toFixed(0) + ' porsi';
                         }
                     }
                 }
@@ -635,7 +635,7 @@
                 x: { 
                     grid: { borderDash: [4, 4], drawBorder: false },
                     ticks: { precision: 1 },
-                    title: { display: true, text: 'Berat Sisa (kg)', font: { weight: 'bold' } }
+                    title: { display: true, text: 'Jumlah Sisa (Porsi)', font: { weight: 'bold' } }
                 },
                 y: { grid: { display: false } }
             }

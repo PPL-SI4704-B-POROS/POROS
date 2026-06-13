@@ -4,6 +4,7 @@ namespace App\Http\Controllers\SuperAdmin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Pengiriman;
+use App\Models\PlateWaste;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 
@@ -11,7 +12,7 @@ class PengirimanController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Pengiriman::with(['produksi.menu', 'sekolah', 'kurir']);
+        $query = Pengiriman::with(['produksi.menu', 'sekolah', 'kurir', 'plateWastes']);
 
         if ($request->has('search')) {
             $search = $request->get('search');
@@ -57,20 +58,50 @@ class PengirimanController extends Controller
     {
         $request->validate([
             'nama_penerima' => 'required|string|max:255',
-            'keterangan' => 'required|in:rasa tidak enak,porsi kebanyakan,menu ga menarik,siswa sedang sakit,kurang matang',
             'ompreng_kembali' => 'nullable|integer|min:0',
             'menu_tersisa' => 'nullable|string|max:255',
-            'jumlah_sisa_ompreng' => 'nullable|integer|min:0',
             'tanggal_sisa' => 'nullable|date',
+            'wastes' => 'nullable|array',
+            'wastes.*' => 'nullable|integer|min:0',
         ]);
 
         $pengiriman = Pengiriman::findOrFail($id);
         $pengiriman->nama_penerima = $request->nama_penerima;
-        $pengiriman->keterangan = $request->keterangan;
         $pengiriman->ompreng_kembali = $request->ompreng_kembali;
         $pengiriman->menu_tersisa = $request->menu_tersisa;
-        $pengiriman->jumlah_sisa_ompreng = $request->jumlah_sisa_ompreng;
         $pengiriman->tanggal_sisa = $request->tanggal_sisa;
+
+        // Hapus data plate wastes lama untuk pengiriman ini agar bisa di-update bersih
+        PlateWaste::where('pengiriman_id', $pengiriman->id)->delete();
+
+        $wastes = $request->input('wastes', []);
+        $totalSisaOmpreng = 0;
+        $primaryReason = null;
+        $maxReasonPorsi = -1;
+
+        $tanggal = $request->tanggal_sisa ?: Carbon::today()->format('Y-m-d');
+
+        foreach ($wastes as $keterangan => $porsi) {
+            if ($porsi > 0) {
+                $totalSisaOmpreng += $porsi;
+
+                PlateWaste::create([
+                    'jumlah_waste' => $porsi,
+                    'tanggal' => $tanggal,
+                    'keterangan' => $keterangan,
+                    'sekolah_id' => $pengiriman->sekolah_id,
+                    'pengiriman_id' => $pengiriman->id,
+                ]);
+
+                if ($porsi > $maxReasonPorsi) {
+                    $maxReasonPorsi = $porsi;
+                    $primaryReason = $keterangan;
+                }
+            }
+        }
+
+        $pengiriman->jumlah_sisa_ompreng = $totalSisaOmpreng;
+        $pengiriman->keterangan = $primaryReason; // Simpan alasan utama (porsi terbanyak) untuk kompatibilitas
 
         // If handover is done, status should be 'Sampai'
         $pengiriman->status_kirim = 'Sampai';
