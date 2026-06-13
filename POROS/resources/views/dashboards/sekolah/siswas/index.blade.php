@@ -376,6 +376,17 @@
             <pre style="font-family: monospace; font-size: 0.8rem; background: #e2e8f0; padding: 0.5rem; border-radius: 6px; overflow-x: auto; color: #334155; margin: 0;">nama,nisn,kelas,kontak,alergi,status
 Budi Santoso,1234567890,7A,08123456789,,Active
 Siti Aminah,0987654321,7B,08234567890,Kacang,Active</pre>
+            
+            <!-- MULAI TAMBAHAN LINK DRIVE -->
+            <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px dashed #cbd5e1; display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-size: 0.8rem; color: #64748b;">Gunakan template yang sudah kami sediakan:</span>
+                <a href="https://drive.google.com/drive/folders/1firj1YAQLQHm6ywuLLVo_GPjZfhkjGbp?usp=sharing" target="_blank" rel="noopener noreferrer" style="font-size: 0.8rem; font-weight: 700; color: #ff6b00; text-decoration: none; display: flex; align-items: center; gap: 0.4rem; padding: 0.4rem 0.8rem; background: #fff5ed; border-radius: 6px; transition: background 0.3s;" onmouseover="this.style.background='#ffede0'" onmouseout="this.style.background='#fff5ed'">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                    Unduh Template
+                </a>
+            </div>
+            <!-- AKHIR TAMBAHAN LINK DRIVE -->
+            
         </div>
 
         <form action="{{ route('sekolah.siswas.import') }}" method="POST" enctype="multipart/form-data">
