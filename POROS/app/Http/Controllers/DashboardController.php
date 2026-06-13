@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\PlateWaste;
 use App\Models\BahanBaku;
+use App\Models\StokGudang; // Import model stok gudang daur lu
 use App\Models\Siswa;
 use App\Models\Antropometri;
 use App\Models\Pengiriman;
@@ -30,9 +31,14 @@ class DashboardController extends Controller
         $todayDeliveriesCount = Pengiriman::whereDate('created_at', Carbon::today())->count();
         $completedDeliveries = Pengiriman::whereDate('created_at', Carbon::today())->where('status_kirim', 'Sampai')->count();
 
-        // 3. Stock Status
-        $lowStockCount = BahanBaku::whereColumn('stok', '<', 'stok_minimal')->count();
-        $stockStatus = $lowStockCount > 3 ? 'Warning' : 'Good';
+        // 3. Stock Status (Sinkronisasi dengan Logika Sisa Hari Produksi Milikmu)
+        $allGudangStocks = StokGudang::all();
+        
+        // Hitung total item yang berstatus 'low' atau 'critical' berdasarkan sisa hari menu riil
+        $lowStockCount = $allGudangStocks->filter(fn($s) => $s->stock_level === 'low' || $s->stock_level === 'critical')->count();
+        
+        // Jika ada item gudang yang kritis/menipis, langsung nyalakan status 'Warning'
+        $stockStatus = $lowStockCount > 0 ? 'Warning' : 'Good';
 
         // 4. Food Waste (Proxy using feedback from Logistics)
         $totalDeliveries = Pengiriman::count();
@@ -80,10 +86,9 @@ class DashboardController extends Controller
             ->orderBy('date', 'ASC')
             ->get();
 
-        $lowStockItems = BahanBaku::with('supplier')
-            ->whereColumn('stok', '<', 'stok_minimal')
-            ->limit(5)
-            ->get();
+        // Mengambil 5 item teratas yang level ketersediaannya menipis berdasarkan modelmu
+        $lowStockItems = $allGudangStocks->filter(fn($s) => $s->stock_level === 'low' || $s->stock_level === 'critical')
+            ->take(5);
 
         return view('dashboards.index', compact(
             'totalStudents', 'studentTrend', 
