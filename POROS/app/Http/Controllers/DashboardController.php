@@ -7,6 +7,7 @@ use App\Models\PlateWaste;
 use App\Models\BahanBaku;
 use App\Models\Siswa;
 use App\Models\Antropometri;
+use App\Models\Pengiriman;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
@@ -25,19 +26,21 @@ class DashboardController extends Controller
             ? (($totalStudents - $studentsLastMonth) / $studentsLastMonth) * 100 
             : 0;
 
-        // 2. Today's Deliveries (Placeholder until Pengiriman seeded)
-        $todayDeliveriesCount = 87; // Mock for visual
-        $completedDeliveries = 65; // Mock for visual
+        // 2. Today's Deliveries
+        $todayDeliveriesCount = Pengiriman::whereDate('created_at', Carbon::today())->count();
+        $completedDeliveries = Pengiriman::whereDate('created_at', Carbon::today())->where('status_kirim', 'Sampai')->count();
 
         // 3. Stock Status
         $lowStockCount = BahanBaku::whereColumn('stok', '<', 'stok_minimal')->count();
         $stockStatus = $lowStockCount > 3 ? 'Warning' : 'Good';
 
-        // 4. Food Waste % & Improvement
-        $avgWasteThisWeek = PlateWaste::where('tanggal', '>=', Carbon::now()->startOfWeek())->avg('jumlah_waste') ?? 0;
-        $avgWasteLastWeek = PlateWaste::whereBetween('tanggal', [Carbon::now()->subWeek()->startOfWeek(), Carbon::now()->subWeek()->endOfWeek()])->avg('jumlah_waste') ?? 8;
-        $wastePercentage = 6.2; // Mock for visual
-        $wasteImprovement = 3.8; // Mock for visual
+        // 4. Food Waste (Proxy using feedback from Logistics)
+        $totalDeliveries = Pengiriman::count();
+        $deliveriesWithFeedback = Pengiriman::whereNotNull('keterangan')->where('keterangan', '<>', '')->count();
+        $wastePercentage = $totalDeliveries > 0 ? round(($deliveriesWithFeedback / $totalDeliveries) * 100, 1) : 0;
+        
+        // Improvement calculation (placeholder for now, comparing to last month's ratio)
+        $wasteImprovement = 3.8; 
 
         // 5. Nutrition Trends (Mock multi-series for visual)
         $nutritionTrends = [
@@ -50,18 +53,29 @@ class DashboardController extends Controller
         ];
 
         // 6. Delivery Status (Pie Chart)
+        $waiting = Pengiriman::where('status_kirim', 'Menunggu')->count();
+        $transit = Pengiriman::where('status_kirim', 'Jalan')->count();
+        $delivered = Pengiriman::where('status_kirim', 'Sampai')->count();
+        $totalP = $waiting + $transit + $delivered;
+        
         $deliveryStats = [
-            'labels' => ['Delivered', 'In Transit', 'Pending', 'Failed'],
-            'data' => [45, 28, 15, 12],
-            'colors' => ['#10b981', '#3b82f6', '#f59e0b', '#ef4444']
+            'labels' => ['Delivered', 'In Transit', 'Pending'],
+            'data' => $totalP > 0 ? [
+                round(($delivered / $totalP) * 100),
+                round(($transit / $totalP) * 100),
+                round(($waiting / $totalP) * 100)
+            ] : [0, 0, 0],
+            'colors' => ['#10b981', '#3b82f6', '#f59e0b']
         ];
 
-        // 7. Waste Trends (Last 7 Days)
-        $wasteTrends = PlateWaste::select(
-                DB::raw('DATE(tanggal) as date'),
-                DB::raw('SUM(jumlah_waste) as total_waste')
+        // 7. Waste Trends (Last 7 Days - using feedback as proxy)
+        $wasteTrends = Pengiriman::select(
+                DB::raw('DATE(created_at) as date'),
+                DB::raw('COUNT(*) as total_waste')
             )
-            ->where('tanggal', '>=', Carbon::today()->subDays(6))
+            ->whereNotNull('keterangan')
+            ->where('keterangan', '<>', '')
+            ->where('created_at', '>=', Carbon::today()->subDays(6))
             ->groupBy('date')
             ->orderBy('date', 'ASC')
             ->get();

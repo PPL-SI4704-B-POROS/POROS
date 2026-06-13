@@ -247,7 +247,7 @@
             <div class="analytics-card">
                 <div class="chart-title">
                     <div style="width: 14px; height: 14px; background: #f59e0b; border-radius: 4px;"></div>
-                    Top 3 Waste Menu
+                    Top 3 Menu Tersisa
                 </div>
                 <div style="height: 300px; flex: 1;">
                     <canvas id="topMenuChart"></canvas>
@@ -606,7 +606,7 @@
         data: {
             labels: {!! json_encode($topMenus->pluck('nama_menu')) !!},
             datasets: [{
-                label: 'Total Sisa (kg)',
+                label: 'Total Sisa (Porsi)',
                 data: {!! json_encode($topMenus->pluck('total_waste')) !!},
                 backgroundColor: topMenuGrad,
                 borderColor: 'rgba(239, 68, 68, 1)',
