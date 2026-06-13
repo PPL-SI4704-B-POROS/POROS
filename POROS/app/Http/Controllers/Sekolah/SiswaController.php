@@ -77,13 +77,13 @@ class SiswaController extends Controller
     public function storeAntropometri(Request $request, $siswa_id)
     {
         $request->validate([
-            'berat_badan' => 'required|numeric',
-            'tinggi_badan' => 'required|numeric',
+            'berat_badan' => 'required|numeric|min:0.1|max:500',
+            'tinggi_badan' => 'required|numeric|min:0.1|max:300',
             'tanggal_ukur' => 'required|date',
         ]);
 
         $imt = $request->berat_badan / (($request->tinggi_badan / 100) ** 2);
-        
+
         // Disamakan dengan visual badge di riwayat_kesehatan.blade.php
         $status_gizi = 'Normal';
         if ($imt < 18.5) {
@@ -133,6 +133,7 @@ class SiswaController extends Controller
         $header = fgetcsv($handle, 1000, $delimiter);
         if (! $header) {
             fclose($handle);
+
             return redirect()->back()->with('error', 'File CSV kosong.');
         }
 
@@ -156,11 +157,13 @@ class SiswaController extends Controller
             if (in_array($col, ['status'])) {
                 return 'status';
             }
+
             return $col;
         }, $header);
 
         if (! in_array('nama_siswa', $header) || ! in_array('nisn', $header)) {
             fclose($handle);
+
             return redirect()->back()->with('error', 'File CSV harus memiliki kolom nama dan nisn.');
         }
 
@@ -192,12 +195,14 @@ class SiswaController extends Controller
             if (empty($nama_siswa)) {
                 $failCount++;
                 $errors[] = "Baris $rowNum: Nama siswa tidak boleh kosong.";
+
                 continue;
             }
 
             if (empty($nisn)) {
                 $failCount++;
                 $errors[] = "Baris $rowNum: NISN tidak boleh kosong.";
+
                 continue;
             }
 
@@ -205,6 +210,7 @@ class SiswaController extends Controller
             if ($existing) {
                 $failCount++;
                 $errors[] = "Baris $rowNum: NISN '$nisn' sudah terdaftar.";
+
                 continue;
             }
 
@@ -231,6 +237,7 @@ class SiswaController extends Controller
         $message = "Berhasil mengimpor $successCount siswa.";
         if ($failCount > 0) {
             $message .= " Gagal mengimpor $failCount baris.";
+
             return redirect()->route('sekolah.siswas.index')
                 ->with('success', $message)
                 ->with('import_errors', $errors);
@@ -311,6 +318,7 @@ class SiswaController extends Controller
         $header = fgetcsv($handle, 1000, $delimiter);
         if (! $header) {
             fclose($handle);
+
             return redirect()->back()->with('error', 'File CSV kosong.');
         }
 
@@ -328,11 +336,13 @@ class SiswaController extends Controller
             if (in_array($col, ['tanggal_ukur', 'tanggal ukur', 'tanggal', 'date'])) {
                 return 'tanggal_ukur';
             }
+
             return $col;
         }, $header);
 
         if (! in_array('nisn', $header) || ! in_array('berat_badan', $header) || ! in_array('tinggi_badan', $header) || ! in_array('tanggal_ukur', $header)) {
             fclose($handle);
+
             return redirect()->back()->with('error', 'File CSV harus memiliki kolom nisn, berat_badan, tinggi_badan, dan tanggal_ukur.');
         }
 
@@ -362,24 +372,28 @@ class SiswaController extends Controller
             if (empty($nisn)) {
                 $failCount++;
                 $errors[] = "Baris $rowNum: NISN tidak boleh kosong.";
+
                 continue;
             }
 
-            if (empty($berat_badan) || ! is_numeric($berat_badan) || floatval($berat_badan) <= 0) {
+            if (empty($berat_badan) || ! is_numeric($berat_badan) || floatval($berat_badan) <= 0 || floatval($berat_badan) > 500) {
                 $failCount++;
-                $errors[] = "Baris $rowNum: Berat badan harus berupa angka positif.";
+                $errors[] = "Baris $rowNum: Berat badan harus berupa angka positif tidak melebihi 500 kg.";
+
                 continue;
             }
 
-            if (empty($tinggi_badan) || ! is_numeric($tinggi_badan) || floatval($tinggi_badan) <= 0) {
+            if (empty($tinggi_badan) || ! is_numeric($tinggi_badan) || floatval($tinggi_badan) <= 0 || floatval($tinggi_badan) > 300) {
                 $failCount++;
-                $errors[] = "Baris $rowNum: Tinggi badan harus berupa angka positif.";
+                $errors[] = "Baris $rowNum: Tinggi badan harus berupa angka positif tidak melebihi 300 cm.";
+
                 continue;
             }
 
             if (empty($tanggal_ukur) || ! strtotime($tanggal_ukur)) {
                 $failCount++;
                 $errors[] = "Baris $rowNum: Tanggal ukur tidak valid.";
+
                 continue;
             }
 
@@ -390,6 +404,7 @@ class SiswaController extends Controller
             if (! $siswa) {
                 $failCount++;
                 $errors[] = "Baris $rowNum: Siswa dengan NISN '$nisn' tidak ditemukan di sekolah Anda.";
+
                 continue;
             }
 
@@ -423,6 +438,7 @@ class SiswaController extends Controller
         $message = "Berhasil mengimpor $successCount data antropometri.";
         if ($failCount > 0) {
             $message .= " Gagal mengimpor $failCount baris.";
+
             return redirect()->route('sekolah.riwayat-kesehatan.index')
                 ->with('success', $message)
                 ->with('import_errors', $errors);

@@ -16,7 +16,6 @@ return new class extends Migration
             $table->id();
             $table->decimal('jumlah_waste', 10, 2);
             $table->date('tanggal');
-            $table->string('kategori_waste')->nullable();
             $table->text('keterangan')->nullable();
             $table->foreignId('sekolah_id')->constrained('sekolahs')->onDelete('cascade');
             $table->foreignId('pengiriman_id')->nullable()->constrained('pengirimans')->onDelete('cascade');

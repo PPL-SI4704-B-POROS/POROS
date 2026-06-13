@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Antropometri;
 use App\Models\BiayaBelanja;
 use App\Models\Pengiriman;
+use App\Models\PlateWaste;
 use App\Models\Sekolah;
 use App\Models\User;
 use Carbon\Carbon;
@@ -123,24 +124,33 @@ class AnalyticsController extends Controller
             $queryPengiriman->whereBetween('created_at', [$startDate, $endDate]);
         }
 
-        // Hitung frekuensi waste per kategori alasan dari feedback pengiriman
-        $wasteData = (clone $queryPengiriman)->select(
+        // Query dari tabel plate_wastes untuk rincian per kategori
+        $queryPlateWaste = PlateWaste::query();
+        if ($selectedSekolah !== 'all') {
+            $queryPlateWaste->where('sekolah_id', $selectedSekolah);
+        }
+        if ($startDate && $endDate) {
+            $queryPlateWaste->whereBetween('tanggal', [$startDate, $endDate]);
+        }
+
+        // Hitung total sisa porsi per kategori alasan dari plate_wastes
+        $wasteData = $queryPlateWaste->select(
             'keterangan',
-            DB::raw('COUNT(*) as total_frekuensi')
+            DB::raw('SUM(jumlah_waste) as total_porsi')
         )
             ->whereNotNull('keterangan')
             ->where('keterangan', '<>', '')
             ->groupBy('keterangan')
             ->get()
             ->map(function ($item) {
-                // Map total_frekuensi to total_kg to keep frontend chart compatibility
-                $item->total_kg = $item->total_frekuensi;
+                // Map total_porsi to total_kg to keep frontend chart compatibility
+                $item->total_kg = (float) ($item->total_porsi ?? 0);
 
                 return $item;
             }) ?? collect();
 
-        // Total akumulasi sampah makanan (menggunakan frekuensi feedback sebagai basis)
-        $totalWasteKg = $wasteData->sum('total_frekuensi') ?? 0;
+        // Total akumulasi sampah makanan (menggunakan total porsi sebagai basis)
+        $totalWasteKg = $wasteData->sum('total_kg') ?? 0;
 
         // Top 3 Waste Menu berdasarkan input menu tersisa di logistik
         $topMenus = (clone $queryPengiriman)

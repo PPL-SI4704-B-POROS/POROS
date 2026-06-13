@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\StokGudang;
-use App\Models\StockHistory;
 use App\Models\BahanBaku;
-use App\Models\Supplier;
+use App\Models\BiayaBelanja;
+use App\Models\StockHistory;
+use App\Models\StokGudang;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -20,9 +20,9 @@ class StokController extends Controller
         ])->get();
 
         $existingIds = $stocks->pluck('bahan_baku_id')->toArray();
-        $bahanBakus  = BahanBaku::with(['supplier', 'katalogPangan'])
-                                ->whereNotIn('id', $existingIds)
-                                ->get();
+        $bahanBakus = BahanBaku::with(['supplier', 'katalogPangan'])
+            ->whereNotIn('id', $existingIds)
+            ->get();
 
         $stokList = $stocks;
 
@@ -33,12 +33,17 @@ class StokController extends Controller
         ));
     }
 
-    // ── ADD ITEM (qty awal = 0) ──────────────────────────────────
+    // ── ADD ITEM WITH INITIAL STOCK & PRICE ──────────────────────
     public function addItem(Request $request)
     {
         $request->validate([
             'bahan_baku_id' => 'required|exists:bahan_bakus,id',
-            'satuan'        => 'required|in:kg,gram,liter,ml',
+            'satuan' => 'required|in:kg,gram,liter,ml',
+            'quantity' => 'required|numeric|min:0.01',
+            'total_harga' => 'nullable|numeric|min:0',
+            'incoming_date' => 'required|date',
+            'batch_id' => 'nullable|string|max:100',
+            'expired_date' => 'nullable|date',
         ]);
 
         $bahan = BahanBaku::findOrFail($request->bahan_baku_id);
@@ -48,12 +53,43 @@ class StokController extends Controller
             return back()->withErrors(['Item ini sudah ada di stok gudang.']);
         }
 
-        StokGudang::create([
-            'bahan_baku_id' => $bahan->id,
-            'supplier_id'   => $bahan->supplier_id,
-            'quantity'      => 0,
-            'satuan'        => $request->satuan,
-        ]);
+        if ($bahan->stok < $request->quantity) {
+            return back()->withErrors(['quantity' => 'Stok supplier tidak cukup. Stok tersedia: '.$bahan->stok.' '.$request->satuan]);
+        }
+
+        // Calculate total price automatically based on supplier unit price and conversions
+        $qtyInBaseUnit = in_array(strtolower($request->satuan), ['kg', 'liter']) ? $request->quantity * 1000 : $request->quantity;
+        $harga_per_gram = $bahan->harga_terbaru;
+        $total_harga = $harga_per_gram > 0 ? ($harga_per_gram * $qtyInBaseUnit) : ($request->total_harga ?? 0);
+
+        DB::transaction(function () use ($bahan, $request, $total_harga) {
+            $stok = StokGudang::create([
+                'bahan_baku_id' => $bahan->id,
+                'supplier_id' => $bahan->supplier_id,
+                'quantity' => $request->quantity,
+                'satuan' => $request->satuan,
+            ]);
+
+            $bahan->decrement('stok', $request->quantity);
+
+            StockHistory::create([
+                'stok_gudang_id' => $stok->id,
+                'status' => 'incoming',
+                'quantity' => $request->quantity,
+                'incoming_date' => $request->incoming_date,
+                'batch_id' => $request->batch_id,
+                'expired_date' => $request->expired_date,
+            ]);
+
+            BiayaBelanja::create([
+                'bahan_baku_id' => $bahan->id,
+                'supplier_id' => $bahan->supplier_id,
+                'dapur_id' => auth()->id(),
+                'jumlah_beli' => $request->quantity,
+                'total_harga' => $total_harga,
+                'tanggal_belanja' => $request->incoming_date,
+            ]);
+        });
 
         return back()->with('success', 'Item berhasil ditambahkan ke stok gudang.');
     }
@@ -62,30 +98,45 @@ class StokController extends Controller
     public function addIncoming(Request $request, $id)
     {
         $request->validate([
-            'quantity'      => 'required|numeric|min:0.01',
+            'quantity' => 'required|numeric|min:0.01',
             'incoming_date' => 'required|date',
-            'batch_id'      => 'nullable|string|max:100',
-            'expired_date'  => 'nullable|date',
+            'total_harga' => 'nullable|numeric|min:0',
+            'batch_id' => 'nullable|string|max:100',
+            'expired_date' => 'nullable|date',
         ]);
 
-        $stok      = StokGudang::findOrFail($id);
+        $stok = StokGudang::findOrFail($id);
         $bahanBaku = BahanBaku::findOrFail($stok->bahan_baku_id);
 
         if ($bahanBaku->stok < $request->quantity) {
-            return back()->withErrors(['quantity' => 'Stok supplier tidak cukup. Stok tersedia: ' . $bahanBaku->stok . ' ' . $stok->satuan]);
+            return back()->withErrors(['quantity' => 'Stok supplier tidak cukup. Stok tersedia: '.$bahanBaku->stok.' '.$stok->satuan]);
         }
 
-        DB::transaction(function () use ($stok, $bahanBaku, $request) {
+        // Calculate total price automatically based on supplier unit price and conversions
+        $qtyInBaseUnit = in_array(strtolower($stok->satuan), ['kg', 'liter']) ? $request->quantity * 1000 : $request->quantity;
+        $harga_per_gram = $bahanBaku->harga_terbaru;
+        $total_harga = $harga_per_gram > 0 ? ($harga_per_gram * $qtyInBaseUnit) : ($request->total_harga ?? 0);
+
+        DB::transaction(function () use ($stok, $bahanBaku, $request, $total_harga) {
             $stok->increment('quantity', $request->quantity);
             $bahanBaku->decrement('stok', $request->quantity);
 
             StockHistory::create([
                 'stok_gudang_id' => $stok->id,
-                'status'         => 'incoming',
-                'quantity'       => $request->quantity,
-                'incoming_date'  => $request->incoming_date,
-                'batch_id'       => $request->batch_id,
-                'expired_date'   => $request->expired_date,
+                'status' => 'incoming',
+                'quantity' => $request->quantity,
+                'incoming_date' => $request->incoming_date,
+                'batch_id' => $request->batch_id,
+                'expired_date' => $request->expired_date,
+            ]);
+
+            BiayaBelanja::create([
+                'bahan_baku_id' => $bahanBaku->id,
+                'supplier_id' => $bahanBaku->supplier_id,
+                'dapur_id' => auth()->id(),
+                'jumlah_beli' => $request->quantity,
+                'total_harga' => $total_harga,
+                'tanggal_belanja' => $request->incoming_date,
             ]);
         });
 
@@ -96,17 +147,17 @@ class StokController extends Controller
     public function adjustStock(Request $request, $id)
     {
         $request->validate([
-            'adjustment_type'   => 'required|in:add,subtract',
+            'adjustment_type' => 'required|in:add,subtract',
             'adjustment_amount' => 'required|numeric|min:0.01',
-            'reason'            => 'required|string|max:255',
+            'reason' => 'required|string|max:255',
         ]);
 
-        $stok   = StokGudang::findOrFail($id);
+        $stok = StokGudang::findOrFail($id);
         $amount = $request->adjustment_amount;
-        $type   = $request->adjustment_type;
+        $type = $request->adjustment_type;
 
         if ($type === 'subtract' && $stok->quantity < $amount) {
-            return back()->withErrors(['adjustment_amount' => 'Jumlah pengurangan melebihi stok saat ini (' . $stok->quantity . ' ' . $stok->satuan . ')']);
+            return back()->withErrors(['adjustment_amount' => 'Jumlah pengurangan melebihi stok saat ini ('.$stok->quantity.' '.$stok->satuan.')']);
         }
 
         DB::transaction(function () use ($stok, $type, $amount, $request) {
@@ -118,11 +169,11 @@ class StokController extends Controller
 
             StockHistory::create([
                 'stok_gudang_id' => $stok->id,
-                'status'         => 'adjustment',
-                'quantity'       => $type === 'add' ? $amount : -$amount,
-                'incoming_date'  => null,
-                'batch_id'       => 'ADJ - ' . $request->reason,
-                'expired_date'   => null,
+                'status' => 'adjustment',
+                'quantity' => $type === 'add' ? $amount : -$amount,
+                'incoming_date' => null,
+                'batch_id' => 'ADJ - '.$request->reason,
+                'expired_date' => null,
             ]);
         });
 
@@ -133,6 +184,7 @@ class StokController extends Controller
     public function destroy($id)
     {
         StokGudang::findOrFail($id)->delete();
+
         return back()->with('success', 'Item berhasil dihapus.');
     }
 
@@ -146,16 +198,16 @@ class StokController extends Controller
         ])->findOrFail($id);
 
         return response()->json([
-            'item'      => $stok->bahanBaku->nama_bahan ?? '-',
-            'supplier'  => $stok->supplier->nama_supplier ?? '-',
-            'kategori'  => $stok->bahanBaku->katalogPangan->kategori ?? '-',
-            'satuan'    => $stok->satuan,
-            'histories' => $stok->histories->map(fn($h) => [
-                'status'        => $h->status,
-                'quantity'      => $h->quantity,
+            'item' => $stok->bahanBaku->nama_bahan ?? '-',
+            'supplier' => $stok->supplier->nama_supplier ?? '-',
+            'kategori' => $stok->bahanBaku->katalogPangan->kategori ?? '-',
+            'satuan' => $stok->satuan,
+            'histories' => $stok->histories->map(fn ($h) => [
+                'status' => $h->status,
+                'quantity' => $h->quantity,
                 'incoming_date' => $h->incoming_date?->format('d M Y') ?? '-',
-                'batch_id'      => $h->batch_id ?? '-',
-                'expired_date'  => $h->expired_date?->format('d M Y') ?? '-',
+                'batch_id' => $h->batch_id ?? '-',
+                'expired_date' => $h->expired_date?->format('d M Y') ?? '-',
             ]),
         ]);
     }

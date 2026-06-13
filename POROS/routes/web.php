@@ -67,11 +67,6 @@ Route::middleware(['auth'])->group(function () {
         Route::put('/dashboard/superadmin/pengumuman/{pengumuman}', [PengumumanController::class, 'update'])->name('pengumuman.update');
 
         Route::get('/dashboard/superadmin/analytics', [AnalyticsController::class, 'index'])->name('superadmin.analytics');
-
-        // ===== PENGIRIMAN =====
-        Route::get('/dashboard/superadmin/deliveries', [PengirimanController::class, 'index'])->name('superadmin.deliveries.index');
-        Route::post('/dashboard/superadmin/deliveries/{id}/status', [PengirimanController::class, 'updateStatus'])->name('superadmin.deliveries.updateStatus');
-        Route::post('/dashboard/superadmin/deliveries/{id}/handover', [PengirimanController::class, 'updateHandover'])->name('superadmin.deliveries.updateHandover');
     });
 
     // =========================================================
@@ -98,6 +93,11 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/dashboard/dapur/deliveries/{id}/adjust', [StokController::class, 'adjustStock'])->name('stocks.adjust');
         Route::delete('/dashboard/dapur/deliveries/{id}', [StokController::class, 'destroy'])->name('stocks.destroy');
         Route::get('/dashboard/dapur/deliveries/{id}/history', [StokController::class, 'history'])->name('stocks.history');
+
+        // ===== PENGIRIMAN (Logistics & Deliveries) =====
+        Route::get('/dashboard/dapur/logistics-deliveries', [PengirimanController::class, 'index'])->name('dapur.deliveries.index');
+        Route::post('/dashboard/dapur/logistics-deliveries/{id}/status', [PengirimanController::class, 'updateStatus'])->name('dapur.deliveries.updateStatus');
+        Route::post('/dashboard/dapur/logistics-deliveries/{id}/handover', [PengirimanController::class, 'updateHandover'])->name('dapur.deliveries.updateHandover');
 
         // ================= CRUD BAHAN BAKU =================
         Route::post('/bahan-bakus', [BahanBakusController::class, 'store'])->name('bahan-bakus.store');

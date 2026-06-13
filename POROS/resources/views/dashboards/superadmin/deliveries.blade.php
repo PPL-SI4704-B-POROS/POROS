@@ -62,11 +62,11 @@
             @endif
 
             <div class="search-container">
-                <form action="{{ route('superadmin.deliveries.index') }}" method="GET" style="flex: 1; position: relative; display: flex; align-items: center;">
+                <form action="{{ route('dapur.deliveries.index') }}" method="GET" style="flex: 1; position: relative; display: flex; align-items: center;">
                     <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                     <input type="text" name="search" class="search-input" placeholder="Search by school or courier..." value="{{ request('search') }}">
                 </form>
-                <form action="{{ route('superadmin.deliveries.index') }}" method="GET">
+                <form action="{{ route('dapur.deliveries.index') }}" method="GET">
                     <select name="status" class="form-input" style="width: auto; padding: 0.65rem 2rem; font-size: 0.9rem;" onchange="this.form.submit()">
                         <option value="">All Status</option>
                         <option value="Menunggu" {{ request('status') == 'Menunggu' ? 'selected' : '' }}>Menunggu</option>
@@ -110,7 +110,7 @@
                                 </div>
                             </td>
                             <td>
-                                <form action="{{ route('superadmin.deliveries.updateStatus', $delivery->id) }}" method="POST">
+                                <form action="{{ route('dapur.deliveries.updateStatus', $delivery->id) }}" method="POST">
                                     @csrf
                                     <select name="status_kirim" onchange="this.form.submit()" class="delivery-status-select @if($delivery->status_kirim == 'Menunggu') status-waiting @elseif($delivery->status_kirim == 'Jalan') status-way @else status-arrived @endif">
                                         <option value="Menunggu" {{ $delivery->status_kirim == 'Menunggu' ? 'selected' : '' }}>Menunggu</option>
@@ -131,7 +131,15 @@
                                 @endif
                             </td>
                             <td style="text-align: right;">
-                                <button onclick="openHandoverModal({{ $delivery->id }}, '{{ addslashes($delivery->sekolah->nama_sekolah) }}')" class="handover-btn">
+                                <button onclick="handleHandoverClick(this)"
+                                        class="handover-btn"
+                                        data-id="{{ $delivery->id }}"
+                                        data-school="{{ $delivery->sekolah->nama_sekolah }}"
+                                        data-recipient="{{ $delivery->nama_penerima ?? '' }}"
+                                        data-returned="{{ $delivery->ompreng_kembali !== null ? $delivery->ompreng_kembali : '' }}"
+                                        data-menu="{{ $delivery->menu_tersisa ?? '' }}"
+                                        data-date="{{ $delivery->tanggal_sisa ? $delivery->tanggal_sisa->format('Y-m-d') : '' }}"
+                                        data-wastes="{{ json_encode($delivery->plateWastes->pluck('jumlah_waste', 'keterangan')) }}">
                                     Input Penerima
                                 </button>
                             </td>
@@ -174,33 +182,38 @@
                     <input type="number" name="ompreng_kembali" class="form-input" placeholder="0" min="0" style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 10px;">
                 </div>
                 <div>
-                    <label style="display: block; font-size: 0.85rem; font-weight: 700; margin-bottom: 0.5rem; color: #374151;">Keterangan Feedback</label>
-                    <select name="keterangan" class="form-input" required style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 10px;">
-                        <option value="" disabled selected>Pilih keterangan...</option>
-                        <option value="rasa tidak enak">Rasa tidak enak</option>
-                        <option value="porsi kebanyakan">Porsi kebanyakan</option>
-                        <option value="menu ga menarik">Menu ga menarik</option>
-                        <option value="siswa sedang sakit">Siswa sedang sakit</option>
-                        <option value="kurang matang">Kurang matang</option>
-                    </select>
+                    <label style="display: block; font-size: 0.85rem; font-weight: 700; margin-bottom: 0.5rem; color: #374151;">Tanggal Sisa</label>
+                    <input type="date" name="tanggal_sisa" class="form-input" style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 10px;">
                 </div>
             </div>
 
-            <div style="margin-bottom:1.5rem;">
+            <div style="margin-bottom:1rem;">
                 <label style="display: block; font-size: 0.85rem; font-weight: 700; margin-bottom: 0.5rem; color: #374151;">Detail Menu Tersisa</label>
-                <div style="display: flex; flex-direction: column; gap: 0.8rem;">
-                    <div>
-                        <input type="text" name="menu_tersisa" class="form-input" placeholder="Nama Menu Tersisa" style="width: 100%; padding: 0.7rem; border: 1px solid #d1d5db; border-radius: 10px;">
+                <input type="text" name="menu_tersisa" class="form-input" placeholder="Nama Menu Tersisa" style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 10px;">
+            </div>
+
+            <div style="margin-bottom:1.5rem; background:#f8fafc; padding:1.25rem; border-radius:14px; border:1px solid #e2e8f0;">
+                <label style="display: block; font-size: 0.85rem; font-weight: 700; margin-bottom: 0.75rem; color: #0c1e35;">Alasan Sisa Makanan (Porsi/Ompreng)</label>
+                <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                    <div style="display: flex; align-items: center; justify-content: space-between;">
+                        <span style="font-size: 0.85rem; font-weight: 600; color: #4b5563;">Rasa tidak enak</span>
+                        <input type="number" name="wastes[rasa tidak enak]" class="form-input" placeholder="0" min="0" style="width: 100px; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 8px; text-align: center;">
                     </div>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-                        <div>
-                            <label style="display: block; font-size: 0.75rem; font-weight: 600; margin-bottom: 0.3rem; color: #6b7280;">Sisa (Ompreng)</label>
-                            <input type="number" name="jumlah_sisa_ompreng" class="form-input" placeholder="0" min="0" style="width: 100%; padding: 0.7rem; border: 1px solid #d1d5db; border-radius: 10px;">
-                        </div>
-                        <div>
-                            <label style="display: block; font-size: 0.75rem; font-weight: 600; margin-bottom: 0.3rem; color: #6b7280;">Tanggal</label>
-                            <input type="date" name="tanggal_sisa" class="form-input" style="width: 100%; padding: 0.7rem; border: 1px solid #d1d5db; border-radius: 10px;">
-                        </div>
+                    <div style="display: flex; align-items: center; justify-content: space-between;">
+                        <span style="font-size: 0.85rem; font-weight: 600; color: #4b5563;">Porsi kebanyakan</span>
+                        <input type="number" name="wastes[porsi kebanyakan]" class="form-input" placeholder="0" min="0" style="width: 100px; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 8px; text-align: center;">
+                    </div>
+                    <div style="display: flex; align-items: center; justify-content: space-between;">
+                        <span style="font-size: 0.85rem; font-weight: 600; color: #4b5563;">Menu ga menarik</span>
+                        <input type="number" name="wastes[menu ga menarik]" class="form-input" placeholder="0" min="0" style="width: 100px; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 8px; text-align: center;">
+                    </div>
+                    <div style="display: flex; align-items: center; justify-content: space-between;">
+                        <span style="font-size: 0.85rem; font-weight: 600; color: #4b5563;">Siswa sedang sakit</span>
+                        <input type="number" name="wastes[siswa sedang sakit]" class="form-input" placeholder="0" min="0" style="width: 100px; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 8px; text-align: center;">
+                    </div>
+                    <div style="display: flex; align-items: center; justify-content: space-between;">
+                        <span style="font-size: 0.85rem; font-weight: 600; color: #4b5563;">Kurang matang</span>
+                        <input type="number" name="wastes[kurang matang]" class="form-input" placeholder="0" min="0" style="width: 100px; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 8px; text-align: center;">
                     </div>
                 </div>
             </div>
@@ -211,9 +224,48 @@
 </div>
 
 <script>
-    function openHandoverModal(id, schoolName) {
-        document.getElementById('handoverForm').action = '/dashboard/superadmin/deliveries/' + id + '/handover';
+    function handleHandoverClick(button) {
+        const id = button.getAttribute('data-id');
+        const schoolName = button.getAttribute('data-school');
+        const recipientName = button.getAttribute('data-recipient');
+        const returnedOmpreng = button.getAttribute('data-returned');
+        const remainingMenu = button.getAttribute('data-menu');
+        const remainingDate = button.getAttribute('data-date');
+        
+        let wastes = {};
+        try {
+            wastes = JSON.parse(button.getAttribute('data-wastes') || '{}');
+        } catch (e) {
+            console.error("Error parsing wastes JSON:", e);
+        }
+
+        openHandoverModal(id, schoolName, recipientName, returnedOmpreng, remainingMenu, remainingDate, wastes);
+    }
+
+    function openHandoverModal(id, schoolName, recipientName, returnedOmpreng, remainingMenu, remainingDate, wastes) {
+        document.getElementById('handoverForm').action = '/dashboard/dapur/logistics-deliveries/' + id + '/handover';
         document.getElementById('handover_school_name').textContent = schoolName;
+
+        // Populate inputs
+        document.querySelector('#handoverForm input[name="nama_penerima"]').value = recipientName || '';
+        document.querySelector('#handoverForm input[name="ompreng_kembali"]').value = returnedOmpreng !== '' ? returnedOmpreng : '';
+        document.querySelector('#handoverForm input[name="menu_tersisa"]').value = remainingMenu || '';
+        document.querySelector('#handoverForm input[name="tanggal_sisa"]').value = remainingDate || '';
+
+        // Reset all waste split inputs
+        const wasteInputs = document.querySelectorAll('#handoverForm input[name^="wastes["]');
+        wasteInputs.forEach(input => input.value = '');
+
+        // Populate wastes split inputs
+        if (wastes) {
+            Object.keys(wastes).forEach(key => {
+                const input = document.getElementById('handoverForm').querySelector(`input[name="wastes[${key}]"]`);
+                if (input) {
+                    input.value = Math.round(wastes[key]);
+                }
+            });
+        }
+
         document.getElementById('handoverModal').style.display = 'flex';
     }
 
