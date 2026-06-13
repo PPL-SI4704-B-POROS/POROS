@@ -118,7 +118,7 @@
                                 <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
                                     <button
                                         dusk="stock-btn-{{ $stock->id }}"
-                                        onclick="openIncomingModal({{ $stock->id }}, '{{ addslashes($stock->bahanBaku->nama_bahan ?? '') }}')"
+                                        onclick="openIncomingModal({{ $stock->id }}, '{{ addslashes($stock->bahanBaku->nama_bahan ?? '') }}', {{ $stock->bahanBaku->harga_terbaru ?? 0 }}, '{{ $stock->satuan }}')"
                                         style="background:#ff6b00; color:white; border:none; padding:0.5rem 0.9rem; border-radius:10px; font-weight:600; font-size:0.8rem; cursor:pointer;"
                                     >+ Stock</button>
 
@@ -163,8 +163,8 @@
 {{-- MODAL: ADD ITEM                            --}}
 {{-- ═══════════════════════════════════════════ --}}
 <div id="addItemModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); justify-content:center; align-items:center; z-index:999;">
-    <div style="background:white; width:460px; border-radius:24px; padding:2rem;">
-        <h2 style="font-size:1.75rem; font-weight:800; color:#0c1e35; margin-bottom:1.75rem;">Add Item to Stock</h2>
+    <div style="background:white; width:500px; max-width:92%; border-radius:24px; padding:2rem; max-height:90vh; overflow-y:auto;">
+        <h2 style="font-size:1.75rem; font-weight:800; color:#0c1e35; margin-bottom:1.5rem;">Add Item to Stock</h2>
 
         <form action="{{ route('stocks.addItem') }}" method="POST">
             @csrf
@@ -172,25 +172,53 @@
 
                 <div>
                     <label style="font-size:0.85rem; color:#6b7280; font-weight:600; display:block; margin-bottom:0.4rem;">Ingredient</label>
-                    <select name="bahan_baku_id" required style="width:100%; padding:1rem; border:1px solid #d1d5db; border-radius:12px; font-size:0.95rem;">
-                        <option value="">-- Pilih Bahan Baku --</option>
+                    <select name="bahan_baku_id" id="addItemBahan" required onchange="calculateAddItemPrice()" style="width:100%; padding:0.85rem; border:1px solid #d1d5db; border-radius:12px; font-size:0.95rem;">
+                        <option value="" data-harga-per-gram="0">-- Pilih Bahan Baku --</option>
                         @foreach($bahanBakus as $bahan)
-                            <option value="{{ $bahan->id }}">
-                                {{ $bahan->nama_bahan }} — {{ $bahan->supplier->nama_supplier ?? 'No Supplier' }}
+                            <option value="{{ $bahan->id }}" data-harga-per-gram="{{ $bahan->harga_terbaru ?? 0 }}">
+                                {{ $bahan->nama_bahan }} — {{ $bahan->supplier->nama_supplier ?? 'No Supplier' }} (Stok Supplier: {{ $bahan->stok }}, Harga/Satuan: Rp {{ number_format($bahan->harga_satuan_terbaru ?? 0, 0, ',', '.') }})
                             </option>
                         @endforeach
                     </select>
                 </div>
 
-                <div>
-                    <label style="font-size:0.85rem; color:#6b7280; font-weight:600; display:block; margin-bottom:0.4rem;">Satuan</label>
-                    <select name="satuan" required style="width:100%; padding:1rem; border:1px solid #d1d5db; border-radius:12px;">
-                        <option value="">-- Pilih Satuan --</option>
-                        <option value="kg">kg</option>
-                        <option value="gram">gram</option>
-                        <option value="liter">liter</option>
-                        <option value="ml">ml</option>
-                    </select>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div>
+                        <label style="font-size:0.85rem; color:#6b7280; font-weight:600; display:block; margin-bottom:0.4rem;">Quantity</label>
+                        <input type="number" name="quantity" id="addItemQty" required min="0.01" step="0.01" oninput="calculateAddItemPrice()" placeholder="e.g. 50" style="width:100%; padding:0.85rem; border:1px solid #d1d5db; border-radius:12px;">
+                    </div>
+                    <div>
+                        <label style="font-size:0.85rem; color:#6b7280; font-weight:600; display:block; margin-bottom:0.4rem;">Satuan</label>
+                        <select name="satuan" required onchange="calculateAddItemPrice()" style="width:100%; padding:0.85rem; border:1px solid #d1d5db; border-radius:12px;">
+                            <option value="">-- Pilih Satuan --</option>
+                            <option value="kg">kg</option>
+                            <option value="gram">gram</option>
+                            <option value="liter">liter</option>
+                            <option value="ml">ml</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div>
+                        <label style="font-size:0.85rem; color:#6b7280; font-weight:600; display:block; margin-bottom:0.4rem;">Total Harga Belanja (Rp)</label>
+                        <input type="number" name="total_harga" id="addItemTotal" required readonly min="0" placeholder="0" style="width:100%; padding:0.85rem; border:1px solid #d1d5db; border-radius:12px; background-color: #f3f4f6; color: #475569;">
+                    </div>
+                    <div>
+                        <label style="font-size:0.85rem; color:#6b7280; font-weight:600; display:block; margin-bottom:0.4rem;">Incoming Date</label>
+                        <input type="date" name="incoming_date" required style="width:100%; padding:0.85rem; border:1px solid #d1d5db; border-radius:12px;">
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div>
+                        <label style="font-size:0.85rem; color:#6b7280; font-weight:600; display:block; margin-bottom:0.4rem;">Batch ID <span style="color:#9ca3af; font-weight:400;">(opsional)</span></label>
+                        <input type="text" name="batch_id" placeholder="e.g. BATCH-001" style="width:100%; padding:0.85rem; border:1px solid #d1d5db; border-radius:12px;">
+                    </div>
+                    <div>
+                        <label style="font-size:0.85rem; color:#6b7280; font-weight:600; display:block; margin-bottom:0.4rem;">Expired Date <span style="color:#9ca3af; font-weight:400;">(opsional)</span></label>
+                        <input type="date" name="expired_date" style="width:100%; padding:0.85rem; border:1px solid #d1d5db; border-radius:12px;">
+                    </div>
                 </div>
 
             </div>
@@ -217,10 +245,10 @@
                 <div id="incomingSelectWrapper">
                     <label style="font-size:0.85rem; color:#6b7280; font-weight:600; display:block; margin-bottom:0.4rem;">Item</label>
                     <select id="incomingSelectItem" style="width:100%; padding:1rem; border:1px solid #d1d5db; border-radius:12px;" onchange="onIncomingSelectChange(this)">
-                        <option value="">-- Pilih Item --</option>
+                        <option value="" data-harga-per-gram="0" data-satuan="">-- Pilih Item --</option>
                         @foreach($stokList as $s)
-                            <option value="{{ $s->id }}">
-                                {{ $s->bahanBaku->nama_bahan ?? '-' }} — {{ $s->supplier->nama_supplier ?? '-' }} ({{ $s->quantity }} {{ $s->satuan }})
+                            <option value="{{ $s->id }}" data-harga-per-gram="{{ $s->bahanBaku->harga_terbaru ?? 0 }}" data-satuan="{{ $s->satuan }}">
+                                {{ $s->bahanBaku->nama_bahan ?? '-' }} — {{ $s->supplier->nama_supplier ?? '-' }} (Harga/Satuan: Rp {{ number_format($s->bahanBaku->harga_satuan_terbaru ?? 0, 0, ',', '.') }})
                             </option>
                         @endforeach
                     </select>
@@ -233,7 +261,12 @@
 
                 <div>
                     <label style="font-size:0.85rem; color:#6b7280; font-weight:600; display:block; margin-bottom:0.4rem;">Quantity to Add</label>
-                    <input type="number" name="quantity" required min="0.01" step="0.01" placeholder="e.g. 50" style="width:100%; padding:1rem; border:1px solid #d1d5db; border-radius:12px;">
+                    <input type="number" name="quantity" id="incomingQty" required min="0.01" step="0.01" oninput="calculateIncomingPrice()" placeholder="e.g. 50" style="width:100%; padding:1rem; border:1px solid #d1d5db; border-radius:12px;">
+                </div>
+
+                <div>
+                    <label style="font-size:0.85rem; color:#6b7280; font-weight:600; display:block; margin-bottom:0.4rem;">Total Harga Belanja (Rp)</label>
+                    <input type="number" name="total_harga" id="incomingTotal" required readonly min="0" placeholder="0" style="width:100%; padding:1rem; border:1px solid #d1d5db; border-radius:12px; background-color: #f3f4f6; color: #475569;">
                 </div>
 
                 <div>
@@ -370,7 +403,10 @@
     }
 
     // ── INCOMING MODAL ────────────────────────────────────
-    function openIncomingModal(stockId, itemName) {
+    let currentIncomingHargaPerGram = 0;
+    let currentIncomingSatuan = '';
+
+    function openIncomingModal(stockId, itemName, hargaPerGram, satuan) {
         const form          = document.getElementById('incomingForm');
         const selectWrapper = document.getElementById('incomingSelectWrapper');
         const labelWrapper  = document.getElementById('incomingLabelWrapper');
@@ -383,27 +419,78 @@
             form.action                 = `${BASE_URL}/${stockId}/incoming`;
             selectWrapper.style.display = 'none';
             labelWrapper.style.display  = 'block';
-            labelEl.textContent         = itemName;
+            labelEl.textContent         = itemName + ` (${satuan})`;
             selectEl.required           = false;
+            currentIncomingHargaPerGram = parseFloat(hargaPerGram || 0);
+            currentIncomingSatuan       = satuan;
         } else {
             form.action                 = '';
             selectWrapper.style.display = 'block';
             labelWrapper.style.display  = 'none';
             selectEl.required           = true;
             selectEl.value              = '';
+            currentIncomingHargaPerGram = 0;
+            currentIncomingSatuan       = '';
         }
 
+        calculateIncomingPrice();
         document.getElementById('incomingModal').style.display = 'flex';
     }
 
     function onIncomingSelectChange(select) {
         if (select.value) {
             document.getElementById('incomingForm').action = `${BASE_URL}/${select.value}/incoming`;
+            const selectedOption = select.options[select.selectedIndex];
+            currentIncomingHargaPerGram = parseFloat(selectedOption?.getAttribute('data-harga-per-gram') || 0);
+            currentIncomingSatuan       = selectedOption?.getAttribute('data-satuan') || '';
+        } else {
+            currentIncomingHargaPerGram = 0;
+            currentIncomingSatuan       = '';
         }
+        calculateIncomingPrice();
     }
 
     function closeIncomingModal() {
         document.getElementById('incomingModal').style.display = 'none';
+    }
+
+    // ── AUTO CALCULATIONS ─────────────────────────────────
+    function calculateAddItemPrice() {
+        const select = document.getElementById('addItemBahan');
+        const qtyInput = document.getElementById('addItemQty');
+        const totalInput = document.getElementById('addItemTotal');
+        const satuanSelect = document.querySelector('select[name="satuan"]');
+        
+        if (!select || !qtyInput || !totalInput || !satuanSelect) return;
+        
+        const selectedOption = select.options[select.selectedIndex];
+        const hargaPerGram = parseFloat(selectedOption?.getAttribute('data-harga-per-gram') || 0);
+        const qty = parseFloat(qtyInput.value || 0);
+        const stockSatuan = satuanSelect.value;
+        
+        let calculatedTotal = 0;
+        if (stockSatuan === 'kg' || stockSatuan === 'liter') {
+            calculatedTotal = qty * 1000 * hargaPerGram;
+        } else {
+            calculatedTotal = qty * hargaPerGram;
+        }
+        
+        totalInput.value = Math.round(calculatedTotal);
+    }
+
+    function calculateIncomingPrice() {
+        const qtyInput = document.getElementById('incomingQty');
+        const totalInput = document.getElementById('incomingTotal');
+        if (!qtyInput || !totalInput) return;
+        
+        const qty = parseFloat(qtyInput.value || 0);
+        let calculatedTotal = 0;
+        if (currentIncomingSatuan === 'kg' || currentIncomingSatuan === 'liter') {
+            calculatedTotal = qty * 1000 * currentIncomingHargaPerGram;
+        } else {
+            calculatedTotal = qty * currentIncomingHargaPerGram;
+        }
+        totalInput.value = Math.round(calculatedTotal);
     }
 
     // ── ADJUST MODAL ──────────────────────────────────────

@@ -1,6 +1,6 @@
 <header class="header">
-    <h2 style="font-weight: 700; font-size: 1.1rem; color: #0c1e35;">Food Supply Chain Management System</h2>
-    
+    <h2 style="font-weight: 700; font-size: 1.1rem; color: #0c1e35; margin: 0; flex-grow: 1;">Food Supply Chain Management System</h2>
+
     <div style="display: flex; align-items: center; gap: 1.5rem;">
         @if(auth()->user()->role->nama_role === 'super admin')
             {{-- Super Admin: klik lonceng langsung ke halaman pengumuman + badge jumlah --}}
