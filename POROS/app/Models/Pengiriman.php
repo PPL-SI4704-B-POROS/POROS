@@ -22,14 +22,15 @@ class Pengiriman extends Model
         'kurir_id',
         'keterangan',
         'ompreng_kembali',
-        'waste_menu_1',
-        'waste_menu_2',
-        'waste_menu_3',
+        'menu_tersisa',
+        'jumlah_sisa_ompreng',
+        'tanggal_sisa',
     ];
 
     protected $casts = [
         'waktu_berangkat' => 'datetime',
         'waktu_sampai' => 'datetime',
+        'tanggal_sisa' => 'date',
     ];
 
     public function produksi(): BelongsTo

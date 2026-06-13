@@ -5,10 +5,9 @@ namespace App\Http\Controllers\SuperAdmin;
 use App\Http\Controllers\Controller;
 use App\Models\Antropometri;
 use App\Models\BiayaBelanja;
-use App\Models\PlateWaste;
+use App\Models\Pengiriman;
 use App\Models\Sekolah;
 use App\Models\User;
-use App\Models\Pengiriman;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -133,25 +132,22 @@ class AnalyticsController extends Controller
             ->where('keterangan', '<>', '')
             ->groupBy('keterangan')
             ->get()
-            ->map(function($item) {
+            ->map(function ($item) {
                 // Map total_frekuensi to total_kg to keep frontend chart compatibility
                 $item->total_kg = $item->total_frekuensi;
+
                 return $item;
             }) ?? collect();
 
         // Total akumulasi sampah makanan (menggunakan frekuensi feedback sebagai basis)
         $totalWasteKg = $wasteData->sum('total_frekuensi') ?? 0;
 
-        // Top 3 Waste Menu berdasarkan input top 3 di logistik
-        $topWaste1 = (clone $queryPengiriman)->select('waste_menu_1 as menu_name')->whereNotNull('waste_menu_1')->where('waste_menu_1', '<>', '');
-        $topWaste2 = (clone $queryPengiriman)->select('waste_menu_2 as menu_name')->whereNotNull('waste_menu_2')->where('waste_menu_2', '<>', '');
-        $topWaste3 = (clone $queryPengiriman)->select('waste_menu_3 as menu_name')->whereNotNull('waste_menu_3')->where('waste_menu_3', '<>', '');
-
-        $topMenusRaw = $topWaste1->unionAll($topWaste2)->unionAll($topWaste3);
-        
-        $topMenus = DB::query()->fromSub($topMenusRaw, 'combined_waste')
-            ->select('menu_name as nama_menu', DB::raw('COUNT(*) as total_waste'))
-            ->groupBy('menu_name')
+        // Top 3 Waste Menu berdasarkan input menu tersisa di logistik
+        $topMenus = (clone $queryPengiriman)
+            ->select('menu_tersisa as nama_menu', DB::raw('SUM(jumlah_sisa_ompreng) as total_waste'))
+            ->whereNotNull('menu_tersisa')
+            ->where('menu_tersisa', '<>', '')
+            ->groupBy('menu_tersisa')
             ->orderByDesc('total_waste')
             ->limit(3)
             ->get() ?? collect();

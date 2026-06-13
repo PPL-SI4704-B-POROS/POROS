@@ -187,11 +187,21 @@
             </div>
 
             <div style="margin-bottom:1.5rem;">
-                <label style="display: block; font-size: 0.85rem; font-weight: 700; margin-bottom: 0.5rem; color: #374151;">Top 3 Waste Menu</label>
-                <div style="display: flex; flex-direction: column; gap: 0.5rem;">
-                    <input type="text" name="waste_menu_1" class="form-input" placeholder="Menu waste #1" style="width: 100%; padding: 0.7rem; border: 1px solid #d1d5db; border-radius: 10px;">
-                    <input type="text" name="waste_menu_2" class="form-input" placeholder="Menu waste #2" style="width: 100%; padding: 0.7rem; border: 1px solid #d1d5db; border-radius: 10px;">
-                    <input type="text" name="waste_menu_3" class="form-input" placeholder="Menu waste #3" style="width: 100%; padding: 0.7rem; border: 1px solid #d1d5db; border-radius: 10px;">
+                <label style="display: block; font-size: 0.85rem; font-weight: 700; margin-bottom: 0.5rem; color: #374151;">Detail Menu Tersisa</label>
+                <div style="display: flex; flex-direction: column; gap: 0.8rem;">
+                    <div>
+                        <input type="text" name="menu_tersisa" class="form-input" placeholder="Nama Menu Tersisa" style="width: 100%; padding: 0.7rem; border: 1px solid #d1d5db; border-radius: 10px;">
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div>
+                            <label style="display: block; font-size: 0.75rem; font-weight: 600; margin-bottom: 0.3rem; color: #6b7280;">Sisa (Ompreng)</label>
+                            <input type="number" name="jumlah_sisa_ompreng" class="form-input" placeholder="0" min="0" style="width: 100%; padding: 0.7rem; border: 1px solid #d1d5db; border-radius: 10px;">
+                        </div>
+                        <div>
+                            <label style="display: block; font-size: 0.75rem; font-weight: 600; margin-bottom: 0.3rem; color: #6b7280;">Tanggal</label>
+                            <input type="date" name="tanggal_sisa" class="form-input" style="width: 100%; padding: 0.7rem; border: 1px solid #d1d5db; border-radius: 10px;">
+                        </div>
+                    </div>
                 </div>
             </div>
 

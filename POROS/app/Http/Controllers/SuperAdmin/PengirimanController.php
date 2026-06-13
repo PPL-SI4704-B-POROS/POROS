@@ -59,18 +59,18 @@ class PengirimanController extends Controller
             'nama_penerima' => 'required|string|max:255',
             'keterangan' => 'required|in:rasa tidak enak,porsi kebanyakan,menu ga menarik,siswa sedang sakit,kurang matang',
             'ompreng_kembali' => 'nullable|integer|min:0',
-            'waste_menu_1' => 'nullable|string|max:255',
-            'waste_menu_2' => 'nullable|string|max:255',
-            'waste_menu_3' => 'nullable|string|max:255',
+            'menu_tersisa' => 'nullable|string|max:255',
+            'jumlah_sisa_ompreng' => 'nullable|integer|min:0',
+            'tanggal_sisa' => 'nullable|date',
         ]);
 
         $pengiriman = Pengiriman::findOrFail($id);
         $pengiriman->nama_penerima = $request->nama_penerima;
         $pengiriman->keterangan = $request->keterangan;
         $pengiriman->ompreng_kembali = $request->ompreng_kembali;
-        $pengiriman->waste_menu_1 = $request->waste_menu_1;
-        $pengiriman->waste_menu_2 = $request->waste_menu_2;
-        $pengiriman->waste_menu_3 = $request->waste_menu_3;
+        $pengiriman->menu_tersisa = $request->menu_tersisa;
+        $pengiriman->jumlah_sisa_ompreng = $request->jumlah_sisa_ompreng;
+        $pengiriman->tanggal_sisa = $request->tanggal_sisa;
 
         // If handover is done, status should be 'Sampai'
         $pengiriman->status_kirim = 'Sampai';
