@@ -95,7 +95,8 @@
                 </thead>
                 <tbody>
                     @forelse($laporan as $item)
-                    <tr style="border-bottom: 1px solid #f1f5f9;" class="table-row-hover">
+                    <!-- <tr style="border-bottom: 1px solid #f1f5f9;" class="table-row-hover"> -->
+                    <tr style="border-bottom: 1px solid #f1f5f9; {{ $item->status === 'Resolved' ? 'opacity: 0.4;' : '' }}" class="table-row-hover">    
                         <td style="padding: 1rem 1.25rem; font-size: 0.85rem; font-weight: 600; color: #64748b;">{{ $item->formatted_id }}</td>
 
                         <td style="padding: 1rem 1.25rem;">

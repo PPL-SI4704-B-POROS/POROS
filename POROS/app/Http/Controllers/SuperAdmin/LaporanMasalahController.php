@@ -10,7 +10,8 @@ class LaporanMasalahController extends Controller
     public function index(Request $request)
     {
         $query = LaporanMasalah::with('user.role')
-            ->orderBy('created_at', 'asc');
+            ->orderByRaw("FIELD(status, 'Open', 'In Progress', 'Resolved')")
+            ->orderBy('created_at', 'asc');    
 
         if ($request->filled('status')) {
             $query->where('status', $request->status);
