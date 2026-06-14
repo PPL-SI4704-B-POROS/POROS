@@ -192,12 +192,12 @@ class MealPlanningTest extends DuskTestCase
                     ->click('.add-menu-link')
                     ->waitFor('#scheduleModal')
                     ->select('menu_id', $menu->id)
-                    ->type('#schedulePortionInput', '777')
+                    ->type('#schedulePortionInput', '111')
                     ->press('Jadwalkan')
                     ->waitUntilMissing('#scheduleModal');
 
             $schedule = ProduksiHarian::where('menu_id', $menu->id)
-                ->where('total_target_porsi', 777)
+                ->where('total_target_porsi', 111)
                 ->latest('id')
                 ->firstOrFail();
 
