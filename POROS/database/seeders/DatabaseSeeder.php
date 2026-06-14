@@ -24,6 +24,8 @@ class DatabaseSeeder extends Seeder
             MenuSeeder::class,
             WasteSeeder::class,
             AnalyticsRealDataSeeder::class,
+            BahanBakuSeeder::class,
+            StokGudangSeeder::class,
         ]);
     }
 }

@@ -44,15 +44,18 @@
             </div>
             <div class="card">
                 <h3 style="color:#6b7280; margin-bottom:1rem;">Stok Aman (Good)</h3>
-                <h1 style="font-size:2rem; color:#22c55e;">{{ $stocks->where('stock_level', 'good')->count() }}</h1>
+                {{-- 🛠️ FIX: Panggil langsung variabel totalAman dari Controller --}}
+                <h1 style="font-size:2rem; color:#22c55e;">{{ $totalAman }}</h1>
             </div>
             <div class="card">
                 <h3 style="color:#6b7280; margin-bottom:1rem;">Stok Menipis (Low)</h3>
-                <h1 style="font-size:2rem; color:#f59e0b;">{{ $stocks->where('stock_level', 'low')->count() }}</h1>
+                {{-- 🛠️ FIX: Panggil langsung variabel totalMenipis dari Controller --}}
+                <h1 style="font-size:2rem; color:#f59e0b;">{{ $totalMenipis }}</h1>
             </div>
             <div class="card">
                 <h3 style="color:#6b7280; margin-bottom:1rem;">Kritis (Critical)</h3>
-                <h1 style="font-size:2rem; color:#ef4444;">{{ $stocks->where('stock_level', 'critical')->count() }}</h1>
+                {{-- 🛠️ FIX: Panggil langsung variabel totalKritis dari Controller --}}
+                <h1 style="font-size:2rem; color:#ef4444;">{{ $totalKritis }}</h1>
             </div>
         </div>
 
@@ -67,20 +70,46 @@
                         <th style="padding:1rem;">Item</th>
                         <th style="padding:1rem;">Kategori</th>
                         <th style="padding:1rem;">Total Kuantitas</th>
-                        <th style="padding:1rem;">Supplier</th>
                         <th style="padding:1rem;">Aksi</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @forelse($stocks as $stock)
+                    @forelse($stocks as $bahanBakuId => $group)
                         @php
-                            $level      = $stock->stock_level;
-                            $dotColor   = match($level) { 'good' => '#22c55e', 'low' => '#f59e0b', default => '#ef4444' };
-                            $qtyColor   = match($level) { 'good' => '#22c55e', 'low' => '#f59e0b', default => '#ef4444' };
+                            $namaBahan = $groupNames[$bahanBakuId] ?? 'Bahan Baku Tidak Diketahui';
+
+                            $stock = $group->first();
+                            $uniqueId = $stock->id;
+                            $totalQty = $group->sum('quantity');
                             
-                            // Warna background lan teks badge kanggo kelas CSS utawa inline style bawaan
-                            $badgeBg    = match($level) { 'good' => '#dcfce7', 'low' => '#fef3c7', default => '#fee2e2' };
-                            $badgeColor = match($level) { 'good' => '#166534', 'low' => '#92400e', default => '#991b1b' };
+                            // Menyesuaikan level tampilan baris tabel dengan logika fallback controller
+                            $qtyFisik = (float) $totalQty;
+                            $levelBawaan = strtolower($stock->stock_level ?? '');
+                            $level = ($levelBawaan === 'good' || $qtyFisik >= 10000) ? 'good' : (($levelBawaan === 'low' || ($qtyFisik < 10000 && $qtyFisik >= 1000)) ? 'low' : 'critical');
+
+                            $dotColor = match($level) {
+                                'good' => '#22c55e',
+                                'low' => '#f59e0b',
+                                default => '#ef4444'
+                            };
+
+                            $qtyColor = match($level) {
+                                'good' => '#22c55e',
+                                'low' => '#f59e0b',
+                                default => '#ef4444'
+                            };
+
+                            $badgeBg = match($level) {
+                                'good' => '#dcfce7',
+                                'low' => '#fef3c7',
+                                default => '#fee2e2'
+                            };
+
+                            $badgeColor = match($level) {
+                                'good' => '#166534',
+                                'low' => '#92400e',
+                                default => '#991b1b'
+                            };
                         @endphp
                         <tr style="border-bottom:1px solid #f3f4f6;">
 
@@ -89,11 +118,22 @@
                             </td>
 
                             <td style="padding:1rem;">
-                                <div style="font-weight:700; color:#0c1e35;">
-                                    {{ $stock->bahanBaku->nama_bahan ?? '-' }}
+                                <div
+                                    onclick="toggleSupplierRow({{ $uniqueId }})"
+                                    style="
+                                        font-weight:700;
+                                        color:#0c1e35;
+                                        cursor:pointer;
+                                        display:flex;
+                                        align-items:center;
+                                        gap:8px;
+                                    "
+                                >
+                                    <span id="arrow-{{ $uniqueId }}">▶</span>
+                                    {{ $namaBahan }}
                                 </div>
                                 <div style="font-size:0.85rem; color:#64748b; margin-top:0.3rem;">
-                                    {{ $stock->status_text }}
+                                    {{ $level === 'good' ? 'Aman 7 Hari' : ($level === 'low' ? 'Stok Menipis' : 'Perlu Kelola Restock') }}
                                 </div>
                             </td>
 
@@ -105,46 +145,22 @@
 
                             <td style="padding:1rem;">
                                 <div style="font-weight:700; color:{{ $qtyColor }}; margin-bottom:0.4rem;">
-                                    {{ $stock->quantity }} {{ $stock->satuan }}
+                                    {{ $totalQty }} {{ $stock->satuan }}
                                 </div>
-                                
-                                {{-- OWAHAN BADGE ADHEDHASAR GAMBAR PALING ANYAR --}}
-                                @if(str_contains($stock->status_text, 'Aman'))
-                                    <span style="background:#dcfce7; color:#166534; padding:0.3rem 0.6rem; border-radius:999px; font-size:0.75rem; font-weight:600; display:inline-block;">
-                                        Aman 7 Hari
-                                    </span>
-                                @else
-                                    <span style="background:#fee2e2; color:#991b1b; padding:0.3rem 0.6rem; border-radius:999px; font-size:0.75rem; font-weight:600; display:inline-block;">
-                                        {{ $stock->status_text }}
-                                    </span>
-                                @endif
-                            </td>
-
-                            <td style="padding:1rem; color:#374151;">
-                                {{ $stock->supplier->nama_supplier ?? '-' }}
+                                <span style="background:{{ $badgeBg }}; color:{{ $badgeColor }}; padding:0.3rem 0.6rem; border-radius:999px; font-size:0.75rem; font-weight:600;">
+                                    {{ $level === 'good' ? 'Aman 7 Hari' : ($level === 'low' ? 'Stok Menipis' : 'Kritis') }}
+                                </span>
                             </td>
 
                             <td style="padding:1rem;">
                                 <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
-                                    <button
-                                        dusk="stock-btn-{{ $stock->id }}"
-                                        onclick="openIncomingModal({{ $stock->id }}, '{{ addslashes($stock->bahanBaku->nama_bahan ?? '') }}')"
-                                        style="background:#ff6b00; color:white; border:none; padding:0.5rem 0.9rem; border-radius:10px; font-weight:600; font-size:0.8rem; cursor:pointer;"
-                                    >+ Stok</button>
-
-                                    <button
-                                        dusk="adjust-btn-{{ $stock->id }}"
-                                        onclick="openAdjustModal({{ $stock->id }}, '{{ addslashes($stock->bahanBaku->nama_bahan ?? '') }}', {{ $stock->quantity }}, '{{ $stock->satuan }}')"
-                                        style="background:#f3f4f6; color:#374151; border:none; padding:0.5rem 0.9rem; border-radius:10px; font-weight:600; font-size:0.8rem; cursor:pointer;"
-                                    >Sesuaikan</button>
-
                                     <button
                                         dusk="history-btn-{{ $stock->id }}"
                                         onclick="openHistoryModal({{ $stock->id }})"
                                         style="background:#dbeafe; color:#1d4ed8; border:none; padding:0.5rem 0.9rem; border-radius:10px; font-weight:600; font-size:0.8rem; cursor:pointer;"
                                     >Riwayat</button>
 
-                                    <form method="POST" action="{{ route('stocks.destroy', $stock->id) }}" onsubmit="return confirm('Hapus item ini?')">
+                                    <form method="POST" action="{{ route('stocks.destroy', $stock->id) }}" onsubmit="return confirm('Hapus seluruh grup inventaris item ini?')">
                                         @csrf @method('DELETE')
                                         <button type="submit" style="background:#fee2e2; color:#991b1b; border:none; padding:0.5rem 0.9rem; border-radius:10px; font-weight:600; font-size:0.8rem; cursor:pointer;">
                                             Hapus
@@ -154,9 +170,94 @@
                             </td>
 
                         </tr>
+
+                        {{-- DROPDOWN BARIS SUPPLIER --}}
+                        <tr
+                            id="supplier-row-{{ $uniqueId }}"
+                            style="display:none;"
+                        >
+                            <td colspan="5" style="padding:1rem 2rem; background:#f8fafc;">
+
+                                <table style="width:100%; border-collapse:collapse;">
+                                    <thead>
+                                        <tr style="text-align:left; color:#6b7280; font-size:0.9rem; border-bottom: 2px solid #e2e8f0;">
+                                            <th style="padding:0.5rem 0;">Supplier</th>
+                                            <th style="padding:0.5rem 0;">Stok</th>
+                                            <th style="padding:0.5rem 0;">Harga Terbaru</th>
+                                            <th style="padding:0.5rem 0;">Aksi</th>
+                                        </tr>
+                                    </thead>
+
+                                    <tbody>
+                                    @foreach($group as $supplierStock)
+                                        @php
+                                            $isSupplierDeleted  = !$supplierStock->supplier;
+                                            $isBahanBakuDeleted = $supplierStock->bahanBaku?->trashed() ?? true;
+                                            $isRowCritical      = $isSupplierDeleted || $isBahanBakuDeleted;
+                                        @endphp
+                                        <tr style="border-bottom: 1px solid #edf2f7; {{ $isRowCritical ? 'background-color: #fee2e2;' : '' }}">
+
+                                            <td style="padding:0.75rem 0; padding-left: 0.5rem; color:{{ $isRowCritical ? '#991b1b' : '#334155' }}; font-weight:600;">
+                                                @if($isSupplierDeleted)
+                                                    ⚠️ Supplier Telah Dihapus
+                                                @elseif($isBahanBakuDeleted)
+                                                    ⚠️ Bahan Baku Dihapus dari Supplier
+                                                @else
+                                                    {{ $supplierStock->supplier->nama_supplier }}
+                                                @endif
+                                            </td>
+
+                                            <td style="padding:0.75rem 0; color:{{ $isRowCritical ? '#991b1b' : '#334155' }};">
+                                                {{ $supplierStock->quantity }} {{ $supplierStock->satuan }}
+                                            </td>
+
+                                            <td style="padding:0.75rem 0; color:{{ $isRowCritical ? '#991b1b' : '#334155' }};">
+                                                Rp {{ number_format($supplierStock->bahanBaku->harga_terbaru ?? 0,0,',','.') }}
+                                            </td>
+
+                                            <td style="padding:0.75rem 0; display:flex; gap:10px; align-items:center;">
+                                                @if($isRowCritical)
+                                                    <button style="background:#cbd5e1;color:#94a3b8;border:none;padding:8px 12px;border-radius:8px;font-weight:600;cursor:not-allowed;" disabled>+ Stok</button>
+                                                    <button style="background:#cbd5e1;color:#94a3b8;border:none;padding:8px 12px;border-radius:8px;font-weight:600;cursor:not-allowed;" disabled>Sesuaikan</button>
+                                                    
+                                                    <form method="POST" action="{{ route('stocks.destroy', $supplierStock->id) }}" onsubmit="return confirm('Hapus baris catatan stok lama ini?')">
+                                                        @csrf @method('DELETE')
+                                                        <button type="submit" style="background:#ef4444;color:white;border:none;padding:8px 12px;border-radius:8px;font-weight:600;cursor:pointer;">Hapus</button>
+                                                    </form>
+                                                @else
+                                                    <button
+                                                        onclick="openIncomingModal(
+                                                            {{ $supplierStock->id }},
+                                                            '{{ addslashes($supplierStock->bahanBaku->nama_bahan ?? '') }}',
+                                                            {{ $supplierStock->bahanBaku->harga_terbaru ?? 0 }},
+                                                            '{{ $supplierStock->satuan }}'
+                                                        )"
+                                                        style="background:#ff6b00;color:white;border:none;padding:8px 12px;border-radius:8px;font-weight:600;cursor:pointer;"
+                                                    >+ Stok</button>
+
+                                                    <button
+                                                        onclick="openAdjustModal(
+                                                            {{ $supplierStock->id }},
+                                                            '{{ addslashes($supplierStock->bahanBaku->nama_bahan ?? '') }}',
+                                                            {{ $supplierStock->quantity }},
+                                                            '{{ $supplierStock->satuan }}'
+                                                        )"
+                                                        style="background:#f3f4f6;color:#374151;border:none;padding:8px 12px;border-radius:8px;font-weight:600;cursor:pointer;"
+                                                    >Sesuaikan</button>
+                                                @endif
+                                            </td>
+
+                                        </tr>
+                                    @endforeach
+                                    </tbody>
+
+                                </table>
+
+                            </td>
+                        </tr>
                     @empty
                         <tr>
-                            <td colspan="6" style="padding:2rem; text-align:center; color:#9ca3af;">
+                            <td colspan="5" style="padding:2rem; text-align:center; color:#9ca3af;">
                                 Belum ada item. Klik "+ Tambah Item" untuk memulai.
                             </td>
                         </tr>
@@ -170,7 +271,7 @@
 
 
 {{-- ═══════════════════════════════════════════ --}}
-{{-- MODAL: TAMBAH ITEM                         --}}
+{{-- MODAL: TAMBAH ITEM                          --}}
 {{-- ═══════════════════════════════════════════ --}}
 <div id="addItemModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); justify-content:center; align-items:center; z-index:999;">
     <div style="background:white; width:460px; border-radius:24px; padding:2rem;">
@@ -181,12 +282,32 @@
             <div style="display:flex; flex-direction:column; gap:1rem;">
 
                 <div>
+                    <label style="display:block; margin-bottom:8px; font-weight:600;">Supplier</label>
+                    <select
+                        name="supplier_id"
+                        id="modal_supplier_id"
+                        required
+                        onchange="filterBahanBakuBySupplier()"
+                        style="width:100%; padding:12px; border:1px solid #d1d5db; border-radius:12px; margin-bottom:20px;"
+                    >
+                        <option value="">-- Pilih Supplier --</option>
+                        @foreach($suppliers as $supplier)
+                            <option value="{{ $supplier->id }}">{{ $supplier->nama_supplier }}</option>
+                        @endforeach
+                    </select>
+
                     <label style="font-size:0.85rem; color:#6b7280; font-weight:600; display:block; margin-bottom:0.4rem;">Bahan Baku</label>
-                    <select name="bahan_baku_id" required style="width:100%; padding:1rem; border:1px solid #d1d5db; border-radius:12px; font-size:0.95rem;">
-                        <option value="">-- Pilih Bahan Baku --</option>
+                    <select 
+                        name="bahan_baku_id" 
+                        id="modal_bahan_baku_id" 
+                        required 
+                        disabled
+                        style="width:100%; padding:1rem; border:1px solid #d1d5db; border-radius:12px; font-size:0.95rem;"
+                    >
+                        <option value="" data-supplier="">-- Pilih Supplier Dahulu --</option>
                         @foreach($bahanBakus as $bahan)
-                            <option value="{{ $bahan->id }}">
-                                {{ $bahan->nama_bahan }} — {{ $bahan->supplier->nama_supplier ?? 'Tanpa Supplier' }}
+                            <option value="{{ $bahan->id }}" data-supplier="{{ $bahan->supplier_id }}">
+                                {{ $bahan->nama_bahan }}
                             </option>
                         @endforeach
                     </select>
@@ -196,10 +317,8 @@
                     <label style="font-size:0.85rem; color:#6b7280; font-weight:600; display:block; margin-bottom:0.4rem;">Satuan</label>
                     <select name="satuan" required style="width:100%; padding:1rem; border:1px solid #d1d5db; border-radius:12px;">
                         <option value="">-- Pilih Satuan --</option>
-                        <option value="kg">kg</option>
                         <option value="gram">gram</option>
                         <option value="liter">liter</option>
-                        <option value="ml">ml</option>
                     </select>
                 </div>
 
@@ -227,10 +346,10 @@
                 <div id="incomingSelectWrapper">
                     <label style="font-size:0.85rem; color:#6b7280; font-weight:600; display:block; margin-bottom:0.4rem;">Item</label>
                     <select id="incomingSelectItem" style="width:100%; padding:1rem; border:1px solid #d1d5db; border-radius:12px;" onchange="onIncomingSelectChange(this)">
-                        <option value="">-- Pilih Item --</option>
+                        <option value="" data-harga-per-gram="0" data-satuan="">-- Pilih Item --</option>
                         @foreach($stokList as $s)
-                            <option value="{{ $s->id }}">
-                                {{ $s->bahanBaku->nama_bahan ?? '-' }} — {{ $s->supplier->nama_supplier ?? '-' }} ({{ $s->quantity }} {{ $s->satuan }})
+                            <option value="{{ $s->id }}" data-harga-per-gram="{{ $s->bahanBaku->harga_terbaru ?? 0 }}" data-satuan="{{ $s->satuan }}">
+                                {{ $s->bahanBaku->nama_bahan ?? 'Bahan Terhapus' }} — {{ $s->supplier->nama_supplier ?? 'Supplier Terhapus' }}
                             </option>
                         @endforeach
                     </select>
@@ -243,7 +362,12 @@
 
                 <div>
                     <label style="font-size:0.85rem; color:#6b7280; font-weight:600; display:block; margin-bottom:0.4rem;">Jumlah yang Ditambahkan</label>
-                    <input type="number" name="quantity" required min="0.01" step="0.01" placeholder="contoh: 50" style="width:100%; padding:1rem; border:1px solid #d1d5db; border-radius:12px;">
+                    <input type="number" name="quantity" id="incomingQty" required min="0.01" step="0.01" oninput="calculateIncomingPrice()" placeholder="contoh: 50" style="width:100%; padding:1rem; border:1px solid #d1d5db; border-radius:12px;">
+                </div>
+
+                <div>
+                    <label style="font-size:0.85rem; color:#6b7280; font-weight:600; display:block; margin-bottom:0.4rem;">Total Harga Belanja (Rp)</label>
+                    <input type="number" name="total_harga" id="incomingTotal" required readonly min="0" placeholder="0" style="width:100%; padding:1rem; border:1px solid #d1d5db; border-radius:12px; background-color: #f3f4f6; color: #475569;">
                 </div>
 
                 <div>
@@ -273,7 +397,7 @@
 
 
 {{-- ═══════════════════════════════════════════ --}}
-{{-- MODAL: PENYESUAIAN STOK                    --}}
+{{-- MODAL: PENYESUAIAN STOK                     --}}
 {{-- ═══════════════════════════════════════════ --}}
 <div id="adjustModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); justify-content:center; align-items:center; z-index:999;">
     <div style="background:white; width:460px; border-radius:24px; padding:2rem;">
@@ -328,10 +452,10 @@
 
 
 {{-- ═══════════════════════════════════════════ --}}
-{{-- MODAL: RIWAYAT                             --}}
+{{-- MODAL: RIWAYAT                              --}}
 {{-- ═══════════════════════════════════════════ --}}
 <div id="historyModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); justify-content:center; align-items:center; z-index:999;">
-    <div style="background:white; width:740px; max-width:95vw; border-radius:24px; padding:2rem; max-height:85vh; overflow-y:auto;">
+    <div style="background:white; width:800px; max-width:95vw; border-radius:24px; padding:2rem; max-height:85vh; overflow-y:auto;">
 
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
             <div>
@@ -348,6 +472,7 @@
                 <thead>
                     <tr style="border-bottom:1px solid #e5e7eb; text-align:left;">
                         <th style="padding:0.75rem; font-size:0.85rem; color:#6b7280;">Status</th>
+                        <th style="padding:0.75rem; font-size:0.85rem; color:#6b7280;">Supplier Asal</th>
                         <th style="padding:0.75rem; font-size:0.85rem; color:#6b7280;">Kuantitas</th>
                         <th style="padding:0.75rem; font-size:0.85rem; color:#6b7280;">Tanggal Masuk</th>
                         <th style="padding:0.75rem; font-size:0.85rem; color:#6b7280;">ID Batch / Alasan</th>
@@ -366,12 +491,11 @@
 
 
 {{-- ═══════════════════════════════════════════ --}}
-{{-- JAVASCRIPT                                 --}}
+{{-- JAVASCRIPT                                  --}}
 {{-- ═══════════════════════════════════════════ --}}
 <script>
     const BASE_URL = "{{ url('/dashboard/dapur/deliveries') }}";
 
-    // ── MODAL TAMBAH ITEM ────────────────────────────────────
     function openAddItemModal() {
         document.getElementById('addItemModal').style.display = 'flex';
     }
@@ -379,8 +503,66 @@
         document.getElementById('addItemModal').style.display = 'none';
     }
 
-    // ── MODAL STOK MASUK ────────────────────────────────────
-    function openIncomingModal(stockId, itemName) {
+    let currentIncomingHargaPerGram = 0;
+    let currentIncomingSatuan = '';
+
+    function filterBahanBakuBySupplier() {
+        const supplierSelect = document.getElementById('modal_supplier_id');
+        const bahanSelect = document.getElementById('modal_bahan_baku_id');
+        const selectedSupplierId = supplierSelect.value;
+
+        const options = bahanSelect.querySelectorAll('option');
+
+        if (!selectedSupplierId) {
+            bahanSelect.value = "";
+            bahanSelect.disabled = true;
+            options[0].textContent = "-- Pilih Supplier Dahulu --";
+            return;
+        }
+
+        bahanSelect.disabled = false;
+        options[0].textContent = "-- Pilih Bahan Baku --";
+
+        let hasVisibleBahan = false;
+
+        options.forEach((option, index) => {
+            if (index === 0) return;
+
+            const supplierIdBahan = option.getAttribute('data-supplier');
+
+            if (supplierIdBahan === selectedSupplierId) {
+                option.style.display = 'block';
+                hasVisibleBahan = true;
+            } else {
+                option.style.display = 'none';
+            }
+        });
+
+        bahanSelect.value = "";
+        
+        if (!hasVisibleBahan) {
+            options[0].textContent = "-- Supplier ini tidak memiliki bahan baku tersedia --";
+        }
+    }
+
+    function toggleSupplierRow(id)
+    {
+        const row = document.getElementById('supplier-row-' + id);
+        const arrow = document.getElementById('arrow-' + id);
+
+        if(row.style.display === 'none')
+        {
+            row.style.display = 'table-row';
+            arrow.textContent = '▼';
+        }
+        else
+        {
+            row.style.display = 'none';
+            arrow.textContent = '▶';
+        }
+    }
+
+    function openIncomingModal(stockId, itemName, hargaPerGram, satuan) {
         const form          = document.getElementById('incomingForm');
         const selectWrapper = document.getElementById('incomingSelectWrapper');
         const labelWrapper  = document.getElementById('incomingLabelWrapper');
@@ -393,30 +575,57 @@
             form.action                 = `${BASE_URL}/${stockId}/incoming`;
             selectWrapper.style.display = 'none';
             labelWrapper.style.display  = 'block';
-            labelEl.textContent         = itemName;
+            labelEl.textContent         = itemName + ` (${satuan})`;
             selectEl.required           = false;
+            currentIncomingHargaPerGram = parseFloat(hargaPerGram || 0);
+            currentIncomingSatuan       = satuan;
         } else {
             form.action                 = '';
             selectWrapper.style.display = 'block';
             labelWrapper.style.display  = 'none';
             selectEl.required           = true;
             selectEl.value              = '';
+            currentIncomingHargaPerGram = 0;
+            currentIncomingSatuan       = '';
         }
 
+        calculateIncomingPrice();
         document.getElementById('incomingModal').style.display = 'flex';
     }
 
     function onIncomingSelectChange(select) {
         if (select.value) {
             document.getElementById('incomingForm').action = `${BASE_URL}/${select.value}/incoming`;
+            const selectedOption = select.options[select.selectedIndex];
+            currentIncomingHargaPerGram = parseFloat(selectedOption?.getAttribute('data-harga-per-gram') || 0);
+            currentIncomingSatuan       = selectedOption?.getAttribute('data-satuan') || '';
+        } else {
+            currentIncomingHargaPerGram = 0;
+            currentIncomingSatuan       = '';
         }
+        calculateIncomingPrice();
     }
 
     function closeIncomingModal() {
         document.getElementById('incomingModal').style.display = 'none';
     }
 
-    // ── MODAL PENYESUAIAN STOK ──────────────────────────────────────
+    function calculateIncomingPrice() {
+        const qtyInput = document.getElementById('incomingQty');
+        const totalInput = document.getElementById('incomingTotal');
+        if (!qtyInput || !totalInput) return;
+        
+        const qty = parseFloat(qtyInput.value || 0);
+        let calculatedTotal = 0;
+        if (currentIncomingSatuan === 'kg' || currentIncomingSatuan === 'liter') {
+            calculatedTotal = qty * 1000 * currentIncomingHargaPerGram;
+        } else {
+            calculatedTotal = qty * currentIncomingHargaPerGram;
+        }
+        totalInput.value = Math.round(calculatedTotal);
+    }
+
+    // Modal adjustment dan riwayat tetap sama
     function openAdjustModal(stockId, itemName, currentQty, satuan) {
         const form = document.getElementById('adjustForm');
         form.reset();
@@ -443,7 +652,6 @@
         document.getElementById('adjustModal').style.display = 'none';
     }
 
-    // ── MODAL RIWAYAT STOK ─────────────────────────────────────
     function openHistoryModal(stockId) {
         const modal        = document.getElementById('historyModal');
         const loading      = document.getElementById('historyLoading');
@@ -462,7 +670,7 @@
         .then(res => res.json())
         .then(data => {
             document.getElementById('historyTitle').textContent    = data.item;
-            document.getElementById('historySubtitle').textContent = `${data.supplier} · ${data.kategori} · ${data.satuan}`;
+            document.getElementById('historySubtitle').textContent = `${data.kategori} · Satuan: ${data.satuan}`;
 
             tbody.innerHTML = '';
 
@@ -494,6 +702,7 @@
                                     ${h.status}
                                 </span>
                             </td>
+                            <td style="padding:0.75rem; color:#1e293b; font-weight:600;">${h.supplier_name}</td>
                             <td style="padding:0.75rem; font-weight:700; color:#0c1e35;">${qtyDisplay} ${data.satuan}</td>
                             <td style="padding:0.75rem; color:#374151;">${h.incoming_date}</td>
                             <td style="padding:0.75rem; color:#374151;">${h.batch_id}</td>
@@ -515,5 +724,4 @@
         document.getElementById('historyModal').style.display = 'none';
     }
 </script>
-
 @endsection

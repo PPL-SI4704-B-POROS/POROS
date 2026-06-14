@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use App\Models\Siswa;
 use App\Models\Resep;
 use App\Models\ProduksiHarian;
+use Carbon\Carbon;
 
 class StokGudang extends Model
 {
@@ -75,17 +76,17 @@ class StokGudang extends Model
         $gramasi = $this->gramasi_per_porsi;
 
         if ($gramasi > 0) {
-            $quantityGram = $this->toGram($this->quantity, $this->satuan);
+            $quantityGram = $this->toGram((float) $this->quantity, $this->satuan);
             $kebutuhan    = $gramasi * $totalSiswa;
             return round($quantityGram / $kebutuhan, 4);
         }
 
-        return round($this->quantity / $totalSiswa, 4);
+        return round((float) $this->quantity / $totalSiswa, 4);
     }
 
     /**
-     * 3. UBAH STOCK LEVEL LAMA
-     * Mengarah langsung ke stock_indicator agar statistik otomatis mengikuti logika baru.
+     * UBAH STOCK LEVEL LAMA
+     * Mengarah langsung ke stock_indicator agar statistik otomatis mengikuti logika baru milikmu.
      */
     public function getStockLevelAttribute(): string
     {
@@ -93,12 +94,14 @@ class StokGudang extends Model
     }
 
     /**
-     * 2. UBAH STATUS TEXT (Ganti format dadi "Perlu Restock untuk [tanggal]")
+     * INDIKATOR STATUS UTAMA (Format dasar: "Perlu Restock untuk YYYY-MM-DD")
+     * Logika inti buatanmu untuk memprediksi kecukupan bahan berdasarkan jadwal produksi riil.
      */
     public function getStatusTextAttribute(): string
     {
-        $stokTersisa = $this->toGram($this->quantity, $this->satuan);
+        $stokTersisa = $this->toGram((float) $this->quantity, $this->satuan);
 
+        // Mengambil jadwal produksi 7 hari ke depan yang belum selesai dimasak
         $jadwal = ProduksiHarian::with('menu.reseps')
             ->whereDate('tanggal_produksi', '>=', now()->toDateString())
             ->whereNotIn('status_produksi', ['Memasak', 'Selesai'])
@@ -107,6 +110,10 @@ class StokGudang extends Model
             ->get();
 
         foreach ($jadwal as $hari) {
+            if (!$hari->menu) {
+                continue;
+            }
+
             foreach ($hari->menu->reseps as $resep) {
                 if ($resep->bahan_id != $this->bahan_baku_id) {
                     continue;
@@ -116,12 +123,9 @@ class StokGudang extends Model
                 $stokTersisa -= $kebutuhan;
 
                 if ($stokTersisa < 0) {
-                    $tanggal = \Carbon\Carbon::parse(
-                        $hari->tanggal_produksi
-                    )->translatedFormat('d M Y');
-
-                    // Diubah dadi luwih informatif kanggo Kapala Dapur
-                    return "Perlu Restock untuk {$tanggal}";
+                    // Menggunakan format Y-m-d standar agar aman di-parse oleh regex internal
+                    $tanggalSaja = Carbon::parse($hari->tanggal_produksi)->toDateString();
+                    return "Perlu Restock untuk {$tanggalSaja}";
                 }
             }
         }
@@ -130,58 +134,79 @@ class StokGudang extends Model
     }
 
     /**
-     * 1. TAMBAH ACCESSOR BARU (Stock Indicator adhedhasar selisih hari)
+     * INDIKATOR WARNA STOK (Menghitung selisih hari dari hasil rumus buatanmu)
      */
     public function getStockIndicatorAttribute(): string
     {
-        if ($this->status_text === 'Aman 7 Hari') {
+        $statusText = $this->status_text;
+
+        if ($statusText === 'Aman 7 Hari') {
             return 'good';
         }
 
-        if (!str_contains($this->status_text, 'Perlu Restock')) {
+        if (!str_contains($statusText, 'Perlu Restock')) {
             return 'critical';
         }
 
-        // Regex disesuaikan kanggo nangkep format tanggal (contoh: 13 Jun 2026 utawa 13 Juni 2026)
-        preg_match('/(\d{1,2}\s\w+\s\d{4})/', $this->status_text, $match);
+        // Regex menangkap format YYYY-MM-DD hasil kalkulasi status_text
+        preg_match('/(\d{4}-\d{2}-\d{2})/', $statusText, $match);
 
         if (!isset($match[1])) {
             return 'critical';
         }
 
-        // Parse tanggal nggunakake format lokal Indonesia (Locale Aware)
         try {
-            $tanggalRestock = \Carbon\Carbon::parse($match[1]);
+            $tanggalRestock = Carbon::createFromFormat('Y-m-d', $match[1])->startOfDay();
+            $hariIni = now()->startOfDay();
+            
+            $selisihHari = $hariIni->diffInDays($tanggalRestock, false);
         } catch (\Exception $e) {
             return 'critical';
         }
 
-        $selisihHari = now()->startOfDay()->diffInDays(
-            $tanggalRestock->startOfDay(),
-            false
-        );
-
-        // Logika Status Warna adhedhasar sisa hari
+        // Logika warna adaptif buatanmu berdasarkan sisa hari produksi
         if ($selisihHari <= 2) {
-            return 'critical'; // Abang 🔴
+            return 'critical'; // Merah 🔴
         }
 
         if ($selisihHari <= 4) {
             return 'low'; // Kuning 🟡
         }
 
-        return 'good'; // Ijo 🟢
+        return 'good'; // Hijau 🟢
+    }
+
+    /**
+     * Helper opsional: Digunakan oleh file Blade untuk menampilkan teks tanggal Indonesia yang cantik (Locale Aware)
+     */
+    public function getStatusTextFormattedAttribute(): string
+    {
+        $statusText = $this->status_text;
+
+        if (str_contains($statusText, 'Perlu Restock')) {
+            preg_match('/(\d{4}-\d{2}-\d{2})/', $statusText, $match);
+            if (isset($match[1])) {
+                $tanggalIndo = Carbon::parse($match[1])->translatedFormat('d M Y');
+                return "Perlu Restock untuk {$tanggalIndo}";
+            }
+        }
+
+        return $statusText;
     }
 
     /**
      * Helper: konversi quantity ke gram berdasarkan satuan stok gudang.
      */
-    private function toGram(float $quantity, string $satuan): float
+    private function toGram(float $quantity, ?string $satuan): float
     {
+        if (is_null($satuan)) {
+            return $quantity;
+        }
+
         return match (strtolower(trim($satuan))) {
-            'kg'    => $quantity * 1000,
-            'liter' => $quantity * 1000,
-            default => $quantity,
+            'kg', 'kilogram' => $quantity * 1000,
+            'l', 'liter'     => $quantity * 1000,
+            default          => $quantity,
         };
     }
 }

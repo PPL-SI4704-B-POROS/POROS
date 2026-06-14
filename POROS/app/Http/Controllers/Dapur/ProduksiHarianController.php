@@ -3,6 +3,9 @@
 namespace App\Http\Controllers\Dapur;
 
 use App\Models\ProduksiHarian;
+use App\Models\BahanBaku;
+use App\Models\StokGudang;
+use App\Models\StockHistory;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -12,15 +15,17 @@ class ProduksiHarianController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'tanggal_produksi' => 'required|date',
+            'tanggal_production' => 'nullable|date', // Antisipasi jika ada typo di form HTML temen lu
+            'tanggal_produksi' => 'required_without:tanggal_production|date',
             'menu_id' => 'required|exists:menus,id',
             'total_target_porsi' => 'required|integer|min:1',
         ]);
 
+        $tanggal = $request->tanggal_produksi ?? $request->tanggal_production;
         $this->validateAllergy($request->menu_id);
 
         ProduksiHarian::create([
-            'tanggal_produksi' => $request->tanggal_produksi,
+            'tanggal_produksi' => $tanggal,
             'menu_id' => $request->menu_id,
             'total_target_porsi' => $request->total_target_porsi,
             'status_produksi' => 'Menunggu',
@@ -61,36 +66,59 @@ class ProduksiHarianController extends Controller
             return redirect()->back()->with('info', 'Status produksi tidak berubah.');
         }
 
-        // Jika berubah MENJADI 'Memasak' (Mulai masak) dari 'Menunggu', lakukan pemotongan stok gudang!
+        // ── KONDISI 1: JIKA STATUS BERUBAH MENJADI 'Memasak' (POTONG STOK GUDANG) ──
         if ($newStatus === 'Memasak' && $oldStatus === 'Menunggu') {
             try {
                 DB::transaction(function () use ($schedule, $newStatus) {
                     $menu = $schedule->menu;
                     $porsi = $schedule->total_target_porsi;
 
-                    // 1. Validasi stok semua bahan baku mencukupi di StokGudang
+                    // 1. Validasi kecukupan fisik barang di StokGudang internal lu
                     foreach ($menu->reseps as $resep) {
-                        $stokGudang = \App\Models\StokGudang::where('bahan_baku_id', $resep->bahan_id)->first();
-                        $kebutuhanG = $resep->gramasi_per_porsi * $porsi;
-
+                        $stokGudang = StokGudang::where('bahan_baku_id', $resep->bahan_id)->first();
+                        
                         if (!$stokGudang) {
-                            throw new \Exception("Stok gudang untuk {$resep->bahanBaku->nama_bahan} tidak ditemukan.");
+                            throw new \Exception("Bahan baku '{$resep->bahanBaku->nama_bahan}' belum didaftarkan di Stok Gudang Inventaris!");
                         }
 
-                        if ($stokGudang->quantity < $kebutuhanG) {
-                            $kebutuhanKgStr = ($kebutuhanG >= 1000) ? number_format($kebutuhanG / 1000, 2, ',', '.') . ' kg' : number_format($kebutuhanG, 0, ',', '.') . ' g';
-                            $tersediaKgStr = ($stokGudang->quantity >= 1000) ? number_format($stokGudang->quantity / 1000, 2, ',', '.') . ' kg' : number_format($stokGudang->quantity, 0, ',', '.') . ' g';
-                            
-                            throw new \Exception("Stok gudang '{$resep->bahanBaku->nama_bahan}' tidak mencukupi! Dibutuhkan: {$kebutuhanKgStr}, tersedia di inventori gudang: {$tersediaKgStr}.");
+                        $kebutuhanGram = $resep->gramasi_per_porsi * $porsi;
+                        
+                        // Konversi hitungan gram resep ke satuan gudang (kg/liter atau gram asli)
+                        $satuanGudang = strtolower(trim($stokGudang->satuan));
+                        $kebutuhanFinal = ($satuanGudang === 'kg' || $satuanGudang === 'liter') ? $kebutuhanGram / 1000 : $kebutuhanGram;
+
+                        if ($stokGudang->quantity < $kebutuhanFinal) {
+                            $kebutuhanStr = $kebutuhanFinal . ' ' . $stokGudang->satuan;
+                            $tersediaStr = $stokGudang->quantity . ' ' . $stokGudang->satuan;
+                            throw new \Exception("Stok internal '{$resep->bahanBaku->nama_bahan}' tidak cukup untuk memasak! Butuh: {$kebutuhanStr}, Tersedia: {$tersediaStr}.");
                         }
                     }
 
-                    // 2. Jika aman, potong stok_gudang.quantity secara otomatis
+                    // 2. Jika semua bahan lolos kualifikasi, eksekusi pemotongan real-time
                     foreach ($menu->reseps as $resep) {
-                        $stokGudang = \App\Models\StokGudang::where('bahan_baku_id', $resep->bahan_id)->first();
-                        $kebutuhanG = $resep->gramasi_per_porsi * $porsi;
+                        $stokGudang = StokGudang::where('bahan_baku_id', $resep->bahan_id)->first();
+                        $kebutuhanGram = $resep->gramasi_per_porsi * $porsi;
                         
-                        $stokGudang->decrement('quantity', $kebutuhanG);
+                        $satuanGudang = strtolower(trim($stokGudang->satuan));
+                        $kebutuhanFinal = ($satuanGudang === 'kg' || $satuanGudang === 'liter') ? $kebutuhanGram / 1000 : $kebutuhanGram;
+
+                        // Potong fisik stok gudang
+                        $stokGudang->decrement('quantity', (float)$kebutuhanFinal);
+
+                        // Potong juga stok master bahan baku (menjaga keutuhan relasi lama milik temen lu)
+                        if ($resep->bahanBaku) {
+                            $resep->bahanBaku->decrement('stok', $kebutuhanGram);
+                        }
+
+                        // Catat log pengeluaran bahan ke riwayat digital deliveries lu
+                        StockHistory::create([
+                            'stok_gudang_id' => $stokGudang->id,
+                            'status'         => 'adjustment', // Masuk sebagai penyesuaian pemakaian masakan
+                            'quantity'       => -$kebutuhanFinal, // Nilai minus karena keluar dari gudang
+                            'incoming_date'  => now()->toDateString(),
+                            'batch_id'       => 'PRODUKSI - Memasak ' . $menu->nama_menu . ' (' . $porsi . ' Porsi)',
+                            'expired_date'   => null,
+                        ]);
                     }
 
                     $schedule->update([
@@ -101,7 +129,7 @@ class ProduksiHarianController extends Controller
                 return redirect()->back()->with('error_toast', $e->getMessage());
             }
         } else {
-            // Perpindahan status lainnya
+            // Perpindahan status selain dari Menunggu ke Memasak
             $schedule->update([
                 'status_produksi' => $newStatus,
             ]);
@@ -114,18 +142,37 @@ class ProduksiHarianController extends Controller
     {
         $schedule = ProduksiHarian::findOrFail($id);
 
-        // Jika sedang memasak atau sudah siap kirim, kembalikan stok_gudang.quantity saat jadwal dibatalkan/dihapus
+        // ── KONDISI 2: JIKA JADWAL DIHAPUS SAAT SEDANG MEMASAK (KEMBALIKAN STOK GUDANG) ──
         if ($schedule->status_produksi === 'Memasak' || $schedule->status_produksi === 'Siap Kirim') {
             DB::transaction(function () use ($schedule) {
                 $menu = $schedule->menu;
                 $porsi = $schedule->total_target_porsi;
 
                 foreach ($menu->reseps as $resep) {
-                    $stokGudang = \App\Models\StokGudang::where('bahan_baku_id', $resep->bahan_id)->first();
-                    $kebutuhanG = $resep->gramasi_per_porsi * $porsi;
+                    $stokGudang = StokGudang::where('bahan_baku_id', $resep->bahan_id)->first();
+                    $kebutuhanGram = $resep->gramasi_per_porsi * $porsi;
 
                     if ($stokGudang) {
-                        $stokGudang->increment('quantity', $kebutuhanG);
+                        $satuanGudang = strtolower(trim($stokGudang->satuan));
+                        $kebutuhanFinal = ($satuanGudang === 'kg' || $satuanGudang === 'liter') ? $kebutuhanGram / 1000 : $kebutuhanGram;
+
+                        // Kembalikan kuantitas stok gudang yang batal dimasak
+                        $stokGudang->increment('quantity', (float)$kebutuhanFinal);
+
+                        // Buat riwayat pembatalan stok masuk kembali
+                        StockHistory::create([
+                            'stok_gudang_id' => $stokGudang->id,
+                            'status'         => 'adjustment',
+                            'quantity'       => $kebutuhanFinal,
+                            'incoming_date'  => now()->toDateString(),
+                            'batch_id'       => 'BATAL MASAK - ' . $menu->nama_menu,
+                            'expired_date'   => null,
+                        ]);
+                    }
+
+                    // Kembalikan ke stok master milik temanmu
+                    if ($resep->bahanBaku) {
+                        $resep->bahanBaku->increment('stok', $kebutuhanGram);
                     }
                 }
             });

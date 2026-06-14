@@ -5,6 +5,7 @@ namespace App\Http\Controllers\SuperAdmin;
 use App\Http\Controllers\Controller;
 use App\Models\Antropometri;
 use App\Models\BiayaBelanja;
+use App\Models\Pengiriman;
 use App\Models\PlateWaste;
 use App\Models\Sekolah;
 use App\Models\User;
@@ -114,47 +115,49 @@ class AnalyticsController extends Controller
         $giziKurang = (clone $queryAntropometri)->whereIn('antropometris.status_gizi', ['Kurus', 'Kurang'])->count();
         $giziLebih = (clone $queryAntropometri)->whereIn('antropometris.status_gizi', ['Gemuk', 'Obesitas'])->count();
 
-        // --- PBI-36: Logic Waste ---
-        $queryWaste = PlateWaste::query();
+        // --- PBI-36: Logic Waste (Synchronized with Logistics) ---
+        $queryPengiriman = Pengiriman::query();
         if ($selectedSekolah !== 'all') {
-            $queryWaste->where('sekolah_id', $selectedSekolah);
+            $queryPengiriman->where('sekolah_id', $selectedSekolah);
         }
         if ($startDate && $endDate) {
-            $queryWaste->whereBetween('tanggal', [$startDate, $endDate]);
+            $queryPengiriman->whereBetween('created_at', [$startDate, $endDate]);
         }
 
-        // Hitung total kg waste per kategori alasan
-        $wasteData = (clone $queryWaste)->select(
+        // Query dari tabel plate_wastes untuk rincian per kategori
+        $queryPlateWaste = PlateWaste::query();
+        if ($selectedSekolah !== 'all') {
+            $queryPlateWaste->where('sekolah_id', $selectedSekolah);
+        }
+        if ($startDate && $endDate) {
+            $queryPlateWaste->whereBetween('tanggal', [$startDate, $endDate]);
+        }
+
+        // Hitung total sisa porsi per kategori alasan dari plate_wastes
+        $wasteData = $queryPlateWaste->select(
             'keterangan',
-            DB::raw('COUNT(*) as total_frekuensi'),
-            DB::raw('SUM(jumlah_waste) as total_kg')
+            DB::raw('SUM(jumlah_waste) as total_porsi')
         )
             ->whereNotNull('keterangan')
             ->where('keterangan', '<>', '')
             ->groupBy('keterangan')
-            ->get() ?? collect();
+            ->get()
+            ->map(function ($item) {
+                // Map total_porsi to total_kg to keep frontend chart compatibility
+                $item->total_kg = (float) ($item->total_porsi ?? 0);
 
-        // Total akumulasi sampah makanan
-        $totalWasteKg = (clone $queryWaste)->sum('jumlah_waste') ?? 0;
+                return $item;
+            }) ?? collect();
 
-        // Top 3 Waste Menu berdasarkan volume berat sisa makanan (kg)
-        $topWasteMenus = PlateWaste::query()
-            ->join('pengirimans', 'plate_wastes.pengiriman_id', '=', 'pengirimans.id')
-            ->join('produksi_harians', 'pengirimans.produksi_id', '=', 'produksi_harians.id')
-            ->join('menus', 'produksi_harians.menu_id', '=', 'menus.id')
-            ->whereNull('pengirimans.deleted_at')
-            ->whereNull('produksi_harians.deleted_at')
-            ->whereNull('menus.deleted_at');
+        // Total akumulasi sampah makanan (menggunakan total porsi sebagai basis)
+        $totalWasteKg = $wasteData->sum('total_kg') ?? 0;
 
-        if ($selectedSekolah !== 'all') {
-            $topWasteMenus->where('plate_wastes.sekolah_id', $selectedSekolah);
-        }
-        if ($startDate && $endDate) {
-            $topWasteMenus->whereBetween('plate_wastes.tanggal', [$startDate, $endDate]);
-        }
-
-        $topMenus = $topWasteMenus->select('menus.nama_menu', DB::raw('SUM(plate_wastes.jumlah_waste) as total_waste'))
-            ->groupBy('menus.nama_menu')
+        // Top 3 Waste Menu berdasarkan input menu tersisa di logistik
+        $topMenus = (clone $queryPengiriman)
+            ->select('menu_tersisa as nama_menu', DB::raw('SUM(jumlah_sisa_ompreng) as total_waste'))
+            ->whereNotNull('menu_tersisa')
+            ->where('menu_tersisa', '<>', '')
+            ->groupBy('menu_tersisa')
             ->orderByDesc('total_waste')
             ->limit(3)
             ->get() ?? collect();
