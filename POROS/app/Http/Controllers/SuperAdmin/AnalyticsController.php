@@ -22,10 +22,9 @@ class AnalyticsController extends Controller
         $startDate = $request->get('start_date');
         $endDate = $request->get('end_date');
 
-        // --- PBI-34: Logic Biaya Belanja ---
+        // PBI-34: hitung biaya belanja bahan baku
         $queryBiaya = BiayaBelanja::query()
-            ->join('bahan_bakus', 'biaya_belanja.bahan_baku_id', '=', 'bahan_bakus.id')
-            ->whereNull('bahan_bakus.deleted_at');
+            ->join('bahan_bakus', 'biaya_belanja.bahan_baku_id', '=', 'bahan_bakus.id');
 
         if ($selectedDapur !== 'all') {
             $queryBiaya->where('biaya_belanja.dapur_id', $selectedDapur);
@@ -39,7 +38,7 @@ class AnalyticsController extends Controller
             ->groupBy('bahan_bakus.nama_bahan')
             ->get();
 
-        // Ambil data raw untuk grouping bulanan di memory (database agnostic)
+        // ambil data mentah buat dikelompokkin bulanan di memori (biar database-agnostic)
         $rawBiaya = (clone $queryBiaya)
             ->select('biaya_belanja.tanggal_belanja', 'bahan_bakus.nama_bahan', 'biaya_belanja.total_harga')
             ->get();
@@ -62,10 +61,9 @@ class AnalyticsController extends Controller
             return [$monthName => $detail];
         });
 
-        // Top 3 Supplier
+        // nyari top 3 supplier dengan total belanjaan paling gede
         $querySupplier = BiayaBelanja::query()
-            ->join('suppliers', 'biaya_belanja.supplier_id', '=', 'suppliers.id')
-            ->whereNull('suppliers.deleted_at');
+            ->join('suppliers', 'biaya_belanja.supplier_id', '=', 'suppliers.id');
 
         if ($selectedDapur !== 'all') {
             $querySupplier->where('biaya_belanja.dapur_id', $selectedDapur);
@@ -81,7 +79,7 @@ class AnalyticsController extends Controller
             ->limit(3)
             ->get() ?? collect();
 
-        // --- PBI-35: Logic Tren BB/TB ---
+        // PBI-35: hitung tren berat badan & tinggi badan
         $queryAntropometri = Antropometri::query()
             ->join('siswas', 'antropometris.siswa_id', '=', 'siswas.id')
             ->whereNull('siswas.deleted_at');
@@ -93,7 +91,7 @@ class AnalyticsController extends Controller
             $queryAntropometri->whereBetween('antropometris.tanggal_ukur', [$startDate, $endDate]);
         }
 
-        // Fetch raw records to group by month in memory for a smooth monthly growth trend
+        // ambil data mentah dulu terus dikelompokkin per bulan biar tren pertumbuhannya mulus
         $rawAntropometri = (clone $queryAntropometri)
             ->select('antropometris.tanggal_ukur', 'antropometris.berat_badan', 'antropometris.tinggi_badan')
             ->get();
@@ -110,21 +108,28 @@ class AnalyticsController extends Controller
             ];
         })->values();
 
-        // Status Gizi Scorecard (Dinamis dari database berdasarkan IMT dan status gizi riil)
-        $giziNormal = (clone $queryAntropometri)->whereIn('antropometris.status_gizi', ['Normal', 'Baik'])->count();
-        $giziKurang = (clone $queryAntropometri)->whereIn('antropometris.status_gizi', ['Kurus', 'Kurang'])->count();
-        $giziLebih = (clone $queryAntropometri)->whereIn('antropometris.status_gizi', ['Gemuk', 'Obesitas'])->count();
+        // status gizi scorecard: dihitung dinamis dari data pengukuran terbaru per siswa
+        $latestGiziQuery = (clone $queryAntropometri)->whereIn('antropometris.id', function ($query) {
+            $query->select(DB::raw('MAX(id)'))
+                ->from('antropometris')
+                ->whereNull('deleted_at')
+                ->groupBy('siswa_id');
+        });
 
-        // --- PBI-36: Logic Waste (Synchronized with Logistics) ---
+        $giziNormal = (clone $latestGiziQuery)->whereIn('antropometris.status_gizi', ['Normal', 'Baik'])->count();
+        $giziKurang = (clone $latestGiziQuery)->whereIn('antropometris.status_gizi', ['Kurus', 'Kurang'])->count();
+        $giziLebih = (clone $latestGiziQuery)->whereIn('antropometris.status_gizi', ['Gemuk', 'Obesitas'])->count();
+
+        // PBI-36: hitung sisa makanan (food waste) yang udah sinkron sama bagian logistik
         $queryPengiriman = Pengiriman::query();
         if ($selectedSekolah !== 'all') {
             $queryPengiriman->where('sekolah_id', $selectedSekolah);
         }
         if ($startDate && $endDate) {
-            $queryPengiriman->whereBetween('created_at', [$startDate, $endDate]);
+            $queryPengiriman->whereBetween('tanggal_sisa', [$startDate, $endDate]);
         }
 
-        // Query dari tabel plate_wastes untuk rincian per kategori
+        // query data sisa makanan per kategori dari tabel plate_wastes
         $queryPlateWaste = PlateWaste::query();
         if ($selectedSekolah !== 'all') {
             $queryPlateWaste->where('sekolah_id', $selectedSekolah);
@@ -133,7 +138,7 @@ class AnalyticsController extends Controller
             $queryPlateWaste->whereBetween('tanggal', [$startDate, $endDate]);
         }
 
-        // Hitung total sisa porsi per kategori alasan dari plate_wastes
+        // hitung total sisa porsi dikelompokkin berdasarkan alasan sisanya
         $wasteData = $queryPlateWaste->select(
             'keterangan',
             DB::raw('SUM(jumlah_waste) as total_porsi')
@@ -143,16 +148,16 @@ class AnalyticsController extends Controller
             ->groupBy('keterangan')
             ->get()
             ->map(function ($item) {
-                // Map total_porsi to total_kg to keep frontend chart compatibility
+                // map total_porsi ke total_kg biar grafik di frontend tetep kebaca dengan baik
                 $item->total_kg = (float) ($item->total_porsi ?? 0);
 
                 return $item;
             }) ?? collect();
 
-        // Total akumulasi sampah makanan (menggunakan total porsi sebagai basis)
+        // total sampah makanan dikelompokkin pake basis total porsi
         $totalWasteKg = $wasteData->sum('total_kg') ?? 0;
 
-        // Top 3 Waste Menu berdasarkan input menu tersisa di logistik
+        // cari top 3 menu makanan yang paling sering sisa berdasarkan input logistik
         $topMenus = (clone $queryPengiriman)
             ->select('menu_tersisa as nama_menu', DB::raw('SUM(jumlah_sisa_ompreng) as total_waste'))
             ->whereNotNull('menu_tersisa')
@@ -162,7 +167,7 @@ class AnalyticsController extends Controller
             ->limit(3)
             ->get() ?? collect();
 
-        // --- DATA UNTUK FILTER ---
+        // ambil opsi data buat ditaruh di dropdown filter
         $daftarDapur = User::whereHas('role', function ($q) {
             $q->where('nama_role', 'dapur');
         })->get() ?? collect();
