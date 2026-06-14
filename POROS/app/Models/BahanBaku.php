@@ -44,6 +44,25 @@ class BahanBaku extends Model
         return $this->hasMany(FormHarga::class, 'bahan_id');
     }
 
+    public function stokGudangs()
+    {
+        return $this->hasMany(StokGudang::class, 'bahan_baku_id');
+    }
+
+    public function getStokGudangGramAttribute()
+    {
+        $total = 0;
+        foreach ($this->stokGudangs as $sg) {
+            $qty = (float) $sg->quantity;
+            $satuan = strtolower(trim($sg->satuan));
+            if (in_array($satuan, ['kg', 'kilogram', 'l', 'liter'])) {
+                $qty *= 1000;
+            }
+            $total += $qty;
+        }
+        return $total;
+    }
+
     public function getHargaTerbaruAttribute()
     {
         $latest = $this->formHargas()

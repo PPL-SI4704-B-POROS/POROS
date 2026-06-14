@@ -105,12 +105,7 @@ class ProduksiHarianController extends Controller
                         // Potong fisik stok gudang
                         $stokGudang->decrement('quantity', (float)$kebutuhanFinal);
 
-                        // Potong juga stok master bahan baku (menjaga keutuhan relasi lama milik temen lu)
-                        if ($resep->bahanBaku) {
-                            $resep->bahanBaku->decrement('stok', $kebutuhanGram);
-                        }
-
-                        // Catat log pengeluaran bahan ke riwayat digital deliveries lu
+                        // Log pengeluaran bahan ke riwayat digital deliveries lu
                         StockHistory::create([
                             'stok_gudang_id' => $stokGudang->id,
                             'status'         => 'adjustment', // Masuk sebagai penyesuaian pemakaian masakan
@@ -170,11 +165,7 @@ class ProduksiHarianController extends Controller
                         ]);
                     }
 
-                    // Kembalikan ke stok master milik temanmu
-                    if ($resep->bahanBaku) {
-                        $resep->bahanBaku->increment('stok', $kebutuhanGram);
                     }
-                }
             });
         }
 
