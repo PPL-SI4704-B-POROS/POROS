@@ -52,6 +52,13 @@ class AuthController extends Controller
 
     protected function redirectUserByRole()
     {
-        return redirect()->intended('/dashboard');
+        $role = Auth::user()->role?->nama_role;
+
+        return match ($role) {
+            'super admin' => redirect()->route('users.index'),
+            'dapur' => redirect()->route('dashboard.meal_planning'),
+            'sekolah' => redirect()->route('sekolah.siswas.index'),
+            default => redirect()->route('login'),
+        };
     }
 }
