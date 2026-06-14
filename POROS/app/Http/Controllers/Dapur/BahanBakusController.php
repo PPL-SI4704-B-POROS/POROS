@@ -110,10 +110,17 @@ class BahanBakusController extends Controller
         return redirect()->route('inventory.index')->with('success', 'Data bahan baku berhasil diupdate!');
     }
 
-    // DELETE: Menghapus data bahan baku
     public function destroy($id)
     {
         $bahanBaku = BahanBaku::findOrFail($id);
+
+        // Cukup cek dari bahan_baku_id karena struktur tabel sudah rapi
+        $terpakaiDiStok = \App\Models\StokGudang::where('bahan_baku_id', $id)->exists();
+
+        if ($terpakaiDiStok) {
+            return redirect()->route('inventory.index')->with('error', 'Gagal! Bahan baku tidak dapat dihapus karena sedang terdata di Stok Gudang.');
+        }
+
         $bahanBaku->delete();
 
         return redirect()->route('inventory.index')->with('success', 'Data bahan baku berhasil dihapus!');
