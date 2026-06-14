@@ -44,7 +44,6 @@ class SuppliersController extends Controller
             'required',
             'string',
             'max:255',
-            // Abaikan yang sudah dihapus, dan abaikan ID dirinya sendiri saat edit
             Rule::unique('suppliers', 'nama_supplier')
                 ->whereNull('deleted_at')
                 ->ignore($id)
@@ -62,6 +61,13 @@ class SuppliersController extends Controller
     public function destroy($id)
     {
         $supplier = Supplier::findOrFail($id);
+
+        $terpakaiDiStok = \App\Models\StokGudang::where('supplier_id', $id)->exists();
+
+        if ($terpakaiDiStok) {
+            return redirect()->route('inventory.index')->with('error', 'Gagal! Supplier tidak dapat dihapus karena masih memiliki bahan baku yang terdata di Stok Gudang.');
+        }
+
         $supplier->delete();
 
         return redirect()->route('inventory.index')->with('success', 'Supplier berhasil dihapus!');
