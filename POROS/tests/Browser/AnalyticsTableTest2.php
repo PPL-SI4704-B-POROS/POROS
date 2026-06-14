@@ -330,4 +330,65 @@ class AnalyticsTableTest2 extends DuskTestCase
             $this->assertTrue($hasTopMenuLabel, "Top menu labels did not contain 'Menu E2E'. Got: ".json_encode($topMenuLabels));
         });
     }
+
+    /**
+     * TC.34.02 - PBI #34 Dashboard Skenario Negatif (Inverted Dates)
+     */
+    public function test_pbi_34_negative_analytics_inverted_dates(): void
+    {
+        // 1. login sebagai super admin
+        $this->browse(function (Browser $browser) {
+            $browser->loginAs(User::where('email', 'admin@poros.com')->first())
+                // buka analytics dengan tanggal terbalik (start > end)
+                ->visit('/dashboard/superadmin/analytics?start_date=2026-12-31&end_date=2026-01-01')
+                ->assertSee('Advanced Analytics')
+                // pastiin widget Top 3 Supplier mendeteksi gak ada data
+                ->assertSee('Belum ada data supplier.');
+        });
+    }
+
+    /**
+     * TC.35.02 - PBI #35 Dashboard Skenario Negatif (Non-existent School Filter)
+     */
+    public function test_pbi_35_negative_analytics_non_existent_school_scorecard(): void
+    {
+        // 1. login sebagai super admin
+        $this->browse(function (Browser $browser) {
+            $browser->loginAs(User::where('email', 'admin@poros.com')->first())
+                // buka analytics dengan id sekolah fiktif (99999)
+                ->visit('/dashboard/superadmin/analytics?sekolah_id=99999')
+                ->assertSee('Advanced Analytics')
+                // semua scorecard status gizi harus menampilkan angka 0
+                ->assertSeeIn('.scorecard.good h3', '0')
+                ->assertSeeIn('.scorecard.warning h3', '0')
+                ->assertSeeIn('.scorecard.bad h3', '0');
+        });
+    }
+
+    /**
+     * TC.36.02 - PBI #36 Dashboard Skenario Negatif (Non-existent School Filter)
+     */
+    public function test_pbi_36_negative_analytics_non_existent_school_waste(): void
+    {
+        // 1. login sebagai super admin
+        $this->browse(function (Browser $browser) {
+            $browser->loginAs(User::where('email', 'admin@poros.com')->first())
+                // buka analytics dengan id sekolah fiktif (99999)
+                ->visit('/dashboard/superadmin/analytics?sekolah_id=99999')
+                ->assertSee('Advanced Analytics');
+
+            // ambil data total porsi sisa dari chart donat evaluasi sisa makanan
+            // karena sekolah fiktif, datanya harus kosong/nol
+            $wasteData = $browser->script("
+                const chart = Chart.getChart('wasteChart');
+                return chart ? chart.data.datasets[0].data : [];
+            ");
+
+            $totalWaste = 0;
+            if (isset($wasteData[0]) && is_array($wasteData[0])) {
+                $totalWaste = array_sum($wasteData[0]);
+            }
+            $this->assertEquals(0, $totalWaste);
+        });
+    }
 }
