@@ -133,6 +133,7 @@
                             <td style="text-align: right;">
                                 <button onclick="handleHandoverClick(this)"
                                         class="handover-btn"
+                                        dusk="handover-btn-{{ $delivery->id }}"
                                         data-id="{{ $delivery->id }}"
                                         data-school="{{ $delivery->sekolah->nama_sekolah }}"
                                         data-recipient="{{ $delivery->nama_penerima ?? '' }}"
