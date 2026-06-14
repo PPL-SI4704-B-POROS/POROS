@@ -180,4 +180,6 @@ class BahanBakudanSupplierTest extends DuskTestCase
                     ->assertPathContains('/bahan-bakus/' . $bahan->id . '/edit');
         });
     }
+
+    
 }
