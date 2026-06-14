@@ -36,8 +36,8 @@ class AnalyticsTableTest2 extends DuskTestCase
      */
     public function test_e2e_tren_biaya_flow(): void
     {
-        // 1. bikin dummy supplier, katalog, sama bahan baku buat testing belanja
-        $supplier = Supplier::create([
+        // 1. bikin dummy supplier pertama, katalog, sama bahan baku buat testing belanja
+        $supplier1 = Supplier::create([
             'nama_supplier' => 'PT Pangan E2E',
             'alamat' => 'Alamat E2E',
             'kontak' => '0899999999',
@@ -50,72 +50,128 @@ class AnalyticsTableTest2 extends DuskTestCase
             'energi_per_100g' => 100,
         ]);
 
-        $bahan = BahanBaku::create([
+        $bahan1 = BahanBaku::create([
             'nama_bahan' => 'Bahan E2E',
             'stok' => 1000,
             'stok_minimal' => 10,
             'satuan' => 'gram',
             'katalog_pangan_id' => $katalog->id,
-            'supplier_id' => $supplier->id,
+            'supplier_id' => $supplier1->id,
         ]);
 
-        // set harga satuannya mahal sekalian (15jt/kg) biar nanti gampang masuk top 3 supplier
+        // set harga satuannya mahal sekalian (15jt/kg)
         FormHarga::create([
             'harga_satuan' => 15000000,
             'satuan_harga' => 'kg',
             'tanggal_update' => now()->toDateString(),
-            'supplier_id' => $supplier->id,
-            'bahan_id' => $bahan->id,
+            'supplier_id' => $supplier1->id,
+            'bahan_id' => $bahan1->id,
         ]);
 
-        // daftarin itemnya ke stok gudang dulu dengan jumlah awal 0
-        $stok = StokGudang::create([
-            'bahan_baku_id' => $bahan->id,
-            'supplier_id' => $supplier->id,
+        // daftarin item pertama ke stok gudang dulu
+        $stok1 = StokGudang::create([
+            'bahan_baku_id' => $bahan1->id,
+            'supplier_id' => $supplier1->id,
             'quantity' => 0,
             'satuan' => 'kg',
         ]);
 
-        // 2. login jadi dapur terus input stok masuk di fitur stock gudang
-        $this->browse(function (Browser $browser) use ($stok) {
+        // 1b. bikin dummy supplier kedua yang menyuplai barang bermerk sama ("Bahan E2E")
+        $supplier2 = Supplier::create([
+            'nama_supplier' => 'PT Pangan E2E Kedua',
+            'alamat' => 'Alamat E2E Kedua',
+            'kontak' => '0888888888',
+        ]);
+
+        $bahan2 = BahanBaku::create([
+            'nama_bahan' => 'Bahan E2E', // Nama persis sama
+            'stok' => 1000,
+            'stok_minimal' => 10,
+            'satuan' => 'gram',
+            'katalog_pangan_id' => $katalog->id,
+            'supplier_id' => $supplier2->id,
+        ]);
+
+        // set harga satuan supplier kedua (12jt/kg)
+        FormHarga::create([
+            'harga_satuan' => 12000000,
+            'satuan_harga' => 'kg',
+            'tanggal_update' => now()->toDateString(),
+            'supplier_id' => $supplier2->id,
+            'bahan_id' => $bahan2->id,
+        ]);
+
+        // daftarin item kedua ke stok gudang
+        $stok2 = StokGudang::create([
+            'bahan_baku_id' => $bahan2->id,
+            'supplier_id' => $supplier2->id,
+            'quantity' => 0,
+            'satuan' => 'kg',
+        ]);
+
+        // 2. login jadi dapur terus input stok masuk untuk KEDUA barang tadi
+        $this->browse(function (Browser $browser) use ($stok1, $stok2) {
             $browser->loginAs(User::where('email', 'dapur@poros.com')->first())
                 ->visit('/dashboard/dapur/deliveries')
                 ->assertSee('Stock Gudang')
-                ->waitFor("@stock-btn-{$stok->id}")
-                ->click("@stock-btn-{$stok->id}")
+                // input barang pertama (10 kg x 15jt = 150jt)
+                ->waitFor("@stock-btn-{$stok1->id}")
+                ->click("@stock-btn-{$stok1->id}")
                 ->waitFor('#incomingModal')
                 ->type('quantity', '10');
 
-            // input tanggal pake javascript biar gak bentrok sama format locale chrome
             $browser->script("document.querySelector('#incomingModal input[name=\"incoming_date\"]').value = '".now()->toDateString()."';");
 
             $browser->press('Tambah Stok')
                 ->waitForText('Stok berhasil diperbarui.')
-                ->assertSee('Stok berhasil diperbarui.');
+                // input barang kedua (10 kg x 12jt = 120jt)
+                ->waitFor("@stock-btn-{$stok2->id}")
+                ->click("@stock-btn-{$stok2->id}")
+                ->waitFor('#incomingModal')
+                ->type('quantity', '10');
+
+            $browser->script("document.querySelector('#incomingModal input[name=\"incoming_date\"]').value = '".now()->toDateString()."';");
+
+            $browser->press('Tambah Stok')
+                ->waitForText('Stok berhasil diperbarui.');
         });
 
-        // pastiin datanya beneran kesimpen ke database (10 kg x 15jt = 150jt)
+        // pastiin transaksi pertama kesimpen ke db
         $this->assertDatabaseHas('biaya_belanja', [
-            'supplier_id' => $supplier->id,
-            'bahan_baku_id' => $bahan->id,
+            'supplier_id' => $supplier1->id,
+            'bahan_baku_id' => $bahan1->id,
             'jumlah_beli' => 10.0,
             'total_harga' => 150000000.0,
         ]);
 
-        // 3. login jadi admin terus cek dashboard analytic buat mastiin datanya masuk
+        // pastiin transaksi kedua kesimpen ke db
+        $this->assertDatabaseHas('biaya_belanja', [
+            'supplier_id' => $supplier2->id,
+            'bahan_baku_id' => $bahan2->id,
+            'jumlah_beli' => 10.0,
+            'total_harga' => 120000000.0,
+        ]);
+
+        // 3. login jadi admin terus cek dashboard analytic buat mastiin penggabungan & pemisahan supplier
         $this->browse(function (Browser $browser) {
             $browser->loginAs(User::where('email', 'admin@poros.com')->first())
                 ->visit('/dashboard/superadmin/analytics')
                 ->assertSee('Advanced Analytics')
+                // Supplier harus terpisah (PT Pangan E2E dan PT Pangan E2E Kedua)
                 ->assertSee('PT Pangan E2E')
-                ->assertSee('Rp 150.000.000');
+                ->assertSee('Rp 150.000.000')
+                ->assertSee('PT Pangan E2E Kedua')
+                ->assertSee('Rp 120.000.000');
 
-            // intip isi labels di Chart.js lewat script browser buat pastiin chartnya terupdate
-            $labels = $browser->script("
+            // Untuk bahan baku, namanya digabungkan (Bahan E2E harus bernilai kumulatif: 150jt + 120jt = 270jt)
+            $totalHargaChart = $browser->script("
                 const chart = Chart.getChart('biayaChart');
-                return chart ? chart.data.labels : [];
+                if (!chart) return null;
+                const idx = chart.data.labels.indexOf('Bahan E2E');
+                return idx !== -1 ? chart.data.datasets[0].data[idx] : null;
             ");
-            $this->assertContains('Bahan E2E', $labels[0]);
+
+            $this->assertEquals(270000000.0, $totalHargaChart[0]);
         });
     }
 
