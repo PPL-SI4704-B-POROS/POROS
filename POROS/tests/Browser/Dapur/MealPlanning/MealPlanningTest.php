@@ -5,6 +5,7 @@ namespace Tests\Browser\Dapur\MealPlanning;
 use App\Models\Menu;
 use App\Models\User;
 use App\Models\BahanBaku;
+use App\Models\ProduksiHarian;
 use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Laravel\Dusk\Browser;
 use PHPUnit\Framework\Attributes\Test;
@@ -13,60 +14,15 @@ use Tests\DuskTestCase;
 class MealPlanningTest extends DuskTestCase
 {
     use DatabaseMigrations;
+
+    private const EMPTY_WEEK_URL = '/dashboard/dapur/meal-planning?week=52';
+
     protected function setUp(): void
     {
         parent::setUp();
         $this->artisan('db:seed');
     }
-
-    #[Test]
-    public function test_pbi14_tc01_view_dashboard_weekly(): void
-    {
-        $this->browse(function (Browser $browser) {
-            $user = User::where('email', 'dapur@poros.com')->first();
-            $browser->loginAs($user)
-                    ->visit('/dashboard/dapur/meal-planning')
-                    ->assertSee('Meal Planning')
-                    ->assertSee('Kalender Menu Mingguan');
-        });
-    }
-
-    #[Test]
-    public function test_pbi14_tc02_calendar_navigation(): void
-    {
-        $this->browse(function (Browser $browser) {
-            $user = User::where('email', 'dapur@poros.com')->first();
-            $browser->loginAs($user)
-                    ->visit('/dashboard/dapur/meal-planning')
-                    ->clickLink('→')
-                    ->assertQueryStringHas('week', '1')
-                    ->clickLink('←')
-                    ->assertQueryStringHas('week', '0');
-        });
-    }
-
-    #[Test]
-    public function test_pbi14_tc03_view_nutrition_detail(): void
-    {
-        $this->browse(function (Browser $browser) {
-            $user = User::where('email', 'dapur@poros.com')->first();
-            $menu = Menu::first();
-
-            $browser->loginAs($user)
-                    ->visit('/dashboard/dapur/meal-planning')
-                    ->click('.add-menu-link')
-                    ->waitFor('#scheduleModal')
-                    ->select('menu_id', $menu->id)
-                    ->press('Jadwalkan')
-                    ->waitUntilMissing('#scheduleModal');
-
-            $browser->waitFor('.btn-view')
-                    ->click('.btn-view')
-                    ->waitFor('#viewScheduleModal', 10)
-                    ->assertSee('Detail Jadwal Menu');
-        });
-    }
-
+    
     #[Test]
     public function test_pbi13_tc01_add_schedule_positive(): void
     {
@@ -75,7 +31,7 @@ class MealPlanningTest extends DuskTestCase
             $menu = Menu::first();
 
             $browser->loginAs($user)
-                    ->visit('/dashboard/dapur/meal-planning')
+                    ->visit(self::EMPTY_WEEK_URL)
                     ->click('.add-menu-link')
                     ->waitFor('#scheduleModal')
                     ->select('menu_id', $menu->id)
@@ -116,13 +72,62 @@ class MealPlanningTest extends DuskTestCase
             $menu = Menu::first();
 
             $browser->loginAs($user)
-                    ->visit('/dashboard/dapur/meal-planning')
+                    ->visit(self::EMPTY_WEEK_URL)
                     ->click('.add-menu-link')
                     ->waitFor('#scheduleModal')
                     ->select('menu_id', $menu->id)
                     ->type('#schedulePortionInput', '-5')
                     ->press('Jadwalkan')
                     ->assertPathIs('/dashboard/dapur/meal-planning');
+        });
+    }
+
+
+    #[Test]
+    public function test_pbi14_tc01_view_dashboard_weekly(): void
+    {
+        $this->browse(function (Browser $browser) {
+            $user = User::where('email', 'dapur@poros.com')->first();
+            $browser->loginAs($user)
+                    ->visit('/dashboard/dapur/meal-planning')
+                    ->assertSee('Meal Planning')
+                    ->assertSee('Kalender Menu Mingguan');
+        });
+    }
+
+    #[Test]
+    public function test_pbi14_tc02_calendar_navigation(): void
+    {
+        $this->browse(function (Browser $browser) {
+            $user = User::where('email', 'dapur@poros.com')->first();
+            $browser->loginAs($user)
+                    ->visit('/dashboard/dapur/meal-planning')
+                    ->clickLink('→')
+                    ->assertQueryStringHas('week', '1')
+                    ->clickLink('←')
+                    ->assertQueryStringHas('week', '0');
+        });
+    }
+
+    #[Test]
+    public function test_pbi14_tc03_view_nutrition_detail(): void
+    {
+        $this->browse(function (Browser $browser) {
+            $user = User::where('email', 'dapur@poros.com')->first();
+            $menu = Menu::first();
+
+            $browser->loginAs($user)
+                    ->visit(self::EMPTY_WEEK_URL)
+                    ->click('.add-menu-link')
+                    ->waitFor('#scheduleModal')
+                    ->select('menu_id', $menu->id)
+                    ->press('Jadwalkan')
+                    ->waitUntilMissing('#scheduleModal');
+
+            $browser->waitFor('.btn-view')
+                    ->click('.btn-view')
+                    ->waitFor('#viewScheduleModal', 10)
+                    ->assertSee('Detail Jadwal Menu');
         });
     }
 
@@ -134,7 +139,7 @@ class MealPlanningTest extends DuskTestCase
             $menu = Menu::first();
 
             $browser->loginAs($user)
-                    ->visit('/dashboard/dapur/meal-planning')
+                    ->visit(self::EMPTY_WEEK_URL)
                     ->click('.add-menu-link')
                     ->waitFor('#scheduleModal')
                     ->select('menu_id', $menu->id)
@@ -159,7 +164,7 @@ class MealPlanningTest extends DuskTestCase
             $menu = Menu::first();
 
             $browser->loginAs($user)
-                    ->visit('/dashboard/dapur/meal-planning')
+                    ->visit(self::EMPTY_WEEK_URL)
                     ->click('.add-menu-link')
                     ->waitFor('#scheduleModal')
                     ->select('menu_id', $menu->id)
@@ -183,19 +188,26 @@ class MealPlanningTest extends DuskTestCase
             $menu = Menu::first();
 
             $browser->loginAs($user)
-                    ->visit('/dashboard/dapur/meal-planning')
+                    ->visit(self::EMPTY_WEEK_URL)
                     ->click('.add-menu-link')
                     ->waitFor('#scheduleModal')
                     ->select('menu_id', $menu->id)
+                    ->type('#schedulePortionInput', '777')
                     ->press('Jadwalkan')
                     ->waitUntilMissing('#scheduleModal');
 
+            $schedule = ProduksiHarian::where('menu_id', $menu->id)
+                ->where('total_target_porsi', 777)
+                ->latest('id')
+                ->firstOrFail();
+
             $browser->click('button.btn-del:not([disabled])')
                     ->acceptDialog()
-                    ->waitFor('.week-grid', 10)
-                    ->with('.week-grid', function ($grid) use ($menu) {
-                        $grid->assertDontSee($menu->nama_menu);
-                    });
+                    ->waitFor('.week-grid', 10);
+
+            $this->assertSoftDeleted('produksi_harians', [
+                'id' => $schedule->id,
+            ]);
         });
     }
 
@@ -256,7 +268,7 @@ class MealPlanningTest extends DuskTestCase
             $menu = Menu::first();
 
             $browser->loginAs($user)
-                    ->visit('/dashboard/dapur/meal-planning')
+                    ->visit(self::EMPTY_WEEK_URL)
                     ->click('.add-menu-link')
                     ->waitFor('#scheduleModal')
                     ->select('menu_id', $menu->id)
@@ -276,7 +288,7 @@ class MealPlanningTest extends DuskTestCase
             $menu = Menu::first();
 
             $browser->loginAs($user)
-                    ->visit('/dashboard/dapur/meal-planning')
+                    ->visit(self::EMPTY_WEEK_URL)
                     ->click('.add-menu-link')
                     ->waitFor('#scheduleModal')
                     ->select('menu_id', $menu->id)
@@ -297,7 +309,7 @@ class MealPlanningTest extends DuskTestCase
             $menu = Menu::first();
 
             $browser->loginAs($user)
-                    ->visit('/dashboard/dapur/meal-planning')
+                    ->visit(self::EMPTY_WEEK_URL)
                     ->click('.add-menu-link')
                     ->waitFor('#scheduleModal')
                     ->select('menu_id', $menu->id)
@@ -328,7 +340,7 @@ class MealPlanningTest extends DuskTestCase
             $menu = Menu::first();
 
             $browser->loginAs($user)
-                    ->visit('/dashboard/dapur/meal-planning')
+                    ->visit(self::EMPTY_WEEK_URL)
                     ->click('.add-menu-link')
                     ->waitFor('#scheduleModal')
                     ->select('menu_id', $menu->id)
@@ -347,7 +359,7 @@ class MealPlanningTest extends DuskTestCase
             $menu = Menu::first();
 
             $browser->loginAs($user)
-                    ->visit('/dashboard/dapur/meal-planning')
+                    ->visit(self::EMPTY_WEEK_URL)
                     ->click('.add-menu-link')
                     ->waitFor('#scheduleModal')
                     ->select('menu_id', $menu->id)
