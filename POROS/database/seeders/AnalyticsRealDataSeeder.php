@@ -149,6 +149,7 @@ class AnalyticsRealDataSeeder extends Seeder
         for ($i = 0; $i < 40; $i++) {
             $date = Carbon::now()->subDays(rand(1, 30))->format('Y-m-d');
             $menuId = $menuIds[array_rand($menuIds)];
+            $menuName = DB::table('menus')->where('id', $menuId)->value('nama_menu');
 
             $produksiId = DB::table('produksi_harians')->insertGetId([
                 'tanggal_produksi' => $date,
@@ -167,6 +168,9 @@ class AnalyticsRealDataSeeder extends Seeder
                 'produksi_id' => $produksiId,
                 'sekolah_id' => $sekolahId,
                 'kurir_id' => $kurirId,
+                'menu_tersisa' => $menuName,
+                'jumlah_sisa_ompreng' => rand(1, 10),
+                'tanggal_sisa' => $date,
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
