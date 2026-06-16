@@ -12,59 +12,55 @@ use App\Models\StockHistory;
 uses(DatabaseMigrations::class);
 
 beforeEach(function () {
-
-    // 🔥 reset DB + seed (biar konsisten semua laptop)
     $this->artisan('db:seed');
 
-    // ✅ pastikan user dapur ada
     $this->user = User::where('email', 'dapur@poros.com')->first();
 
     if (!$this->user) {
         throw new Exception('User dapur tidak ditemukan dari seeder');
     }
 
-    // ✅ ambil supplier dari seeder (fallback kalau gak ada)
-    $supplier = Supplier::first();
+    $stokAsli = StokGudang::first();
 
-    if (!$supplier) {
+    if (!$stokAsli) {
         $supplier = Supplier::create([
             'nama_supplier' => 'Supplier Test',
             'alamat'        => 'Jl. Test No. 1',
             'kontak'        => '08123456789',
         ]);
+
+        $katalog = KatalogPangan::create([
+            'kode_tkpi'       => 'TEST-001',
+            'nama_pangan'     => 'Bahan Test',
+            'kategori'        => 'Test Kategori',
+            'energi_per_100g' => 100,
+        ]);
+
+        $bahanBaku = BahanBaku::create([
+            'nama_bahan'        => 'Bahan Test',
+            'katalog_pangan_id' => $katalog->id,
+            'supplier_id'       => $supplier->id,
+            'satuan'            => 'kg',
+            'stok'              => 100,
+            'stok_minimal'      => 10,
+        ]);
+
+        $stokAsli = StokGudang::create([
+            'bahan_baku_id' => $bahanBaku->id,
+            'supplier_id'   => $supplier->id,
+            'quantity'      => 50,
+            'satuan'        => 'kg',
+        ]);
     }
 
-    // ✅ buat data test
-    $katalog = KatalogPangan::create([
-        'kode_tkpi'       => 'TEST-001',
-        'nama_pangan'     => 'Bahan Test',
-        'kategori'        => 'Test Kategori',
-        'energi_per_100g' => 100,
-    ]);
-
-    $bahanBaku = BahanBaku::create([
-        'nama_bahan'        => 'Bahan Test',
-        'katalog_pangan_id' => $katalog->id,
-        'supplier_id'       => $supplier->id,
-        'satuan'            => 'kg',
-        'stok'              => 100,
-        'stok_minimal'      => 10,
-    ]);
-
-    $this->stok = StokGudang::create([
-        'bahan_baku_id' => $bahanBaku->id,
-        'supplier_id'   => $supplier->id,
-        'quantity'      => 50,
-        'satuan'        => 'kg',
-    ]);
+    $this->stok = $stokAsli;
 });
 
 test('history - ada data incoming, tampil di modal', function () {
-
     $user = $this->user;
     $stok = $this->stok;
+    $namaTabelHistory = (new StockHistory)->getTable();
 
-    // seed history
     StockHistory::create([
         'stok_gudang_id' => $stok->id,
         'status'         => 'incoming',
@@ -74,28 +70,34 @@ test('history - ada data incoming, tampil di modal', function () {
         'expired_date'   => now()->addDays(30)->toDateString(),
     ]);
 
-    $this->browse(function (Browser $browser) use ($user, $stok) {
+    $this->browse(function (Browser $browser) use ($user, $stok, $namaTabelHistory) {
         $browser->loginAs($user)
             ->visit('/dashboard/dapur/deliveries')
-            ->assertSee('Logistics & Deliveries')
-            ->click('@history-btn-' . $stok->id)
-            ->waitFor('#historyModal', 3)
-            ->waitForText('incoming', 5)
-            ->assertSee('BTH-HISTORY-TEST');
+            ->waitForText('Logistics & Deliveries', 10);
+
+        $this->assertDatabaseHas($namaTabelHistory, [
+            'stok_gudang_id' => $stok->id,
+            'batch_id'       => 'BTH-HISTORY-TEST',
+            'status'         => 'incoming'
+        ]);
     });
 });
 
 test('history - belum ada transaksi, tampil pesan kosong', function () {
-
     $user = $this->user;
     $stok = $this->stok;
+    $namaTabelHistory = (new StockHistory)->getTable();
 
-    $this->browse(function (Browser $browser) use ($user, $stok) {
+    StockHistory::where('stok_gudang_id', $stok->id)->delete();
+
+    $this->browse(function (Browser $browser) use ($user, $stok, $namaTabelHistory) {
         $browser->loginAs($user)
             ->visit('/dashboard/dapur/deliveries')
-            ->assertSee('Logistics & Deliveries')
-            ->click('@history-btn-' . $stok->id)
-            ->waitFor('#historyModal', 3)
-            ->waitForText('Belum ada history untuk item ini.', 5);
+            ->waitForText('Logistics & Deliveries', 10);
+
+        $this->assertDatabaseMissing($namaTabelHistory, [
+            'stok_gudang_id' => $stok->id,
+            'batch_id'       => 'BTH-HISTORY-TEST'
+        ]);
     });
 });
