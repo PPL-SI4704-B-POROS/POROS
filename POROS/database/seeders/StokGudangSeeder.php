@@ -4,7 +4,7 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
-use App\Models\StokGudang; // 🌟 Pastikan Import Model Ini
+use App\Models\StokGudang; // 
 
 class StokGudangSeeder extends Seeder
 {
@@ -16,7 +16,7 @@ class StokGudangSeeder extends Seeder
 
             $qtyMasukGudang = 50000; // 50 kg
 
-            // 🛠️ UBAH JADI MODEL ELOQUENT BIAR ACCESSOR DAN LOGIC MODELNYA JALAN
+            // 
             StokGudang::create([
                 'bahan_baku_id' => $bahan->id,
                 'supplier_id'   => $bahan->supplier_id,

@@ -39,7 +39,7 @@ class StokGudang extends Model
     }
 
     /**
-     * Hitung kebutuhan bahan ini per porsi dari data Resep.
+     * Hitung kebutuhan bahan per porsi dari data Resep.
      */
     public function getGramasiPerPorsiAttribute(): float
     {
@@ -54,7 +54,7 @@ class StokGudang extends Model
     }
 
     /**
-     * Hitung kebutuhan bahan ini untuk seluruh siswa aktif (dalam gram).
+     * Hitung kebutuhan bahan untuk seluruh siswa aktif (dalam gram).
      */
     public function getKebutuhanSatuSiklusAttribute(): float
     {
@@ -86,7 +86,6 @@ class StokGudang extends Model
 
     /**
      * UBAH STOCK LEVEL LAMA
-     * Mengarah langsung ke stock_indicator agar statistik otomatis mengikuti logika baru milikmu.
      */
     public function getStockLevelAttribute(): string
     {
@@ -95,7 +94,6 @@ class StokGudang extends Model
 
     /**
      * INDIKATOR STATUS UTAMA (Format dasar: "Perlu Restock untuk YYYY-MM-DD")
-     * Logika inti buatanmu untuk memprediksi kecukupan bahan berdasarkan jadwal produksi riil.
      */
     public function getStatusTextAttribute(): string
     {
