@@ -109,23 +109,43 @@ class RiwayatKesehatanTest extends DuskTestCase
     }
 
    
-    // PBI #30: Lihat & Filter Riwayat Kesehatan
+// PBI #30: Lihat & Filter Riwayat Kesehatan
     #[Test]
     public function test_pbi_30_lihat_dan_filter_riwayat_kesehatan(): void
     {
         $user = $this->setUpUser();
         
         
-        $namaPencarian = 'Budi'; 
+        $siswa = \App\Models\Siswa::withTrashed()->firstOrNew(['nisn' => '555666777']);
+        $siswa->nama_siswa = 'Budi Testing';
+        
+        $siswa->sekolah_id = $user->sekolah_id ?? 1; 
+        $siswa->kelas = '10A';
+        $siswa->status = 'Active';
+        $siswa->deleted_at = null; 
+        $siswa->save();
 
+        \App\Models\Antropometri::updateOrCreate(
+            ['siswa_id' => $siswa->id],
+            [
+                'berat_badan' => 55.5,
+                'tinggi_badan' => 165.0,
+                'imt' => 20.38,
+                'status_gizi' => 'Normal',
+                'tanggal_ukur' => now()->format('Y-m-d')
+            ]
+        );
+        
+        $namaPencarian = 'Budi Testing'; 
+
+        
         $this->browse(function (Browser $browser) use ($user, $namaPencarian) {
             $browser->loginAs($user)
                     ->visit('/dashboard/sekolah/riwayat-kesehatan')
                     ->waitForText('Riwayat Kesehatan', 10)
-                    ->assertSee('NAMA SISWA')
+                    ->assertSee('NAMA SISWA') 
                     ->assertSee('BERAT BADAN')
                     ->assertSee('IMT (BMI)');
-
             
             $browser->type('input[placeholder="Nama atau NISN..."]', $namaPencarian)
                     ->press('Filter')

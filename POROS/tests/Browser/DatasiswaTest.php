@@ -88,7 +88,7 @@ class DatasiswaTest extends DuskTestCase
                     ->visit('/dashboard/sekolah/siswas')
                     ->waitForText('Data Siswa')
                     ->waitFor('table tbody tr', 5)
-                    // REVISI: Memastikan kita mengklik tombol View pada baris pertama saja
+                    
                     ->click('table tbody tr:first-child button[title="View"]')
                     ->waitFor('#viewSiswaModal', 5)
                     ->pause(1000)
@@ -127,9 +127,9 @@ class DatasiswaTest extends DuskTestCase
                     ->waitFor('table tbody tr', 5);
                     
             
-            $namaSiswa = $browser->text('table tbody tr:first-child td:nth-child(2)'); // Sesuaikan nth-child dengan urutan kolom nama
+            $namaSiswa = $browser->text('table tbody tr:first-child td:nth-child(2)'); 
                     
-            // Mengklik tombol hapus di baris pertama
+            
             $browser->click('table tbody tr:first-child button[title="Hapus"]')
                     ->waitFor('#deleteModal', 5)
                     ->pause(1000)
@@ -139,26 +139,39 @@ class DatasiswaTest extends DuskTestCase
         });
     }
 
-    #[Test]
+   #[Test]
     public function test_pbi_25_tambah_siswa_negatif_nisn_duplikat(): void
     {
         $user = $this->setUpUser();
         $nisnDuplikat = '786998767'; 
 
+        
+        \App\Models\Siswa::withTrashed()->firstOrCreate(
+            ['nisn' => $nisnDuplikat],
+            [
+                'nama_siswa' => 'Siswa Original',
+                'sekolah_id' => $user->sekolah_id ?? 1,
+                'kelas' => '1A',
+                'status' => 'Active',
+                'deleted_at' => null 
+            ]
+        );
+
+        
         $this->browse(function (Browser $browser) use ($user, $nisnDuplikat) {
             $browser->loginAs($user)
                     ->visit('/dashboard/sekolah/siswas')
                     ->waitForText('Data Siswa');
-            
             
             $browser->script("document.querySelector('button.btn-primary').click();");
 
             $browser->waitFor('#addSiswaModal', 5)
                     ->pause(1000)
                     ->type('nama_siswa', 'Siswa Duplikat')
-                    ->type('nisn', $nisnDuplikat)
+                    ->type('nisn', $nisnDuplikat) 
                     ->type('kelas', '1A')
                     ->click('#addSiswaModal button[type="submit"]')
+                   
                     ->waitForText('The nisn has already been taken.', 10) 
                     ->assertSee('The nisn has already been taken.');
         });
