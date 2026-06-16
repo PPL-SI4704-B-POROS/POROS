@@ -9,9 +9,7 @@ use PHPUnit\Framework\Attributes\Test;
 
 class DatasiswaTest extends DuskTestCase
 {
-    /**
-     * Setup user untuk testing
-     */
+    
     protected function setUpUser()
     {
         return User::updateOrCreate(
@@ -34,7 +32,7 @@ class DatasiswaTest extends DuskTestCase
                     ->visit('/dashboard/sekolah/siswas')
                     ->waitForText('Data Siswa');
             
-            // KITA KEMBALIKAN KE CARA LAMAMU YANG TERBUKTI SUKSES
+            
             $browser->script("document.querySelector('button.btn-primary').click();");
 
             $browser->waitFor('#addSiswaModal', 5)
@@ -75,7 +73,6 @@ class DatasiswaTest extends DuskTestCase
                     ->pause(1000)
                     ->attach('file_csv', __DIR__.'/files/dummy_siswa.csv') 
                     ->press('Unggah & Import') 
-                    // REVISI: Menggunakan huruf 'B' kapital sesuai dengan notifikasi di UI
                     ->waitForText('Berhasil mengimpor', 15) 
                     ->assertSee('Berhasil mengimpor'); 
         });
@@ -109,7 +106,6 @@ class DatasiswaTest extends DuskTestCase
             $browser->loginAs($user)
                     ->visit('/dashboard/sekolah/siswas')
                     ->waitFor('table tbody tr', 5)
-                    // REVISI: Mengklik tombol Edit pada baris pertama
                     ->click('table tbody tr:first-child button[title="Edit"]') 
                     ->waitFor('#editSiswaModal', 5)
                     ->pause(1000)
@@ -130,8 +126,7 @@ class DatasiswaTest extends DuskTestCase
                     ->visit('/dashboard/sekolah/siswas')
                     ->waitFor('table tbody tr', 5);
                     
-            // REVISI: Menyederhanakan pengambilan nama siswa agar tidak error 'NoSuchElement'
-            // Kita asumsikan nama siswa ada di dalam baris pertama.
+            
             $namaSiswa = $browser->text('table tbody tr:first-child td:nth-child(2)'); // Sesuaikan nth-child dengan urutan kolom nama
                     
             // Mengklik tombol hapus di baris pertama
@@ -148,14 +143,14 @@ class DatasiswaTest extends DuskTestCase
     public function test_pbi_25_tambah_siswa_negatif_nisn_duplikat(): void
     {
         $user = $this->setUpUser();
-        $nisnDuplikat = '786998767'; // Pastikan NISN ini sudah ada di databasemu
+        $nisnDuplikat = '786998767'; 
 
         $this->browse(function (Browser $browser) use ($user, $nisnDuplikat) {
             $browser->loginAs($user)
                     ->visit('/dashboard/sekolah/siswas')
                     ->waitForText('Data Siswa');
             
-            // KITA KEMBALIKAN KE CARA LAMAMU
+            
             $browser->script("document.querySelector('button.btn-primary').click();");
 
             $browser->waitFor('#addSiswaModal', 5)
