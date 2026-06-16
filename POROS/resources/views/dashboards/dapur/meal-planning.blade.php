@@ -104,10 +104,10 @@
                                         'total_modal' => $firstSch->harga_total_modal,
                                         'ingredients' => $firstSch->menu->reseps->map(function($r) {
                                             return [
-                                                'nama' => $r->bahanBaku ? ($r->bahanBaku->trashed() ? $r->bahanBaku->nama_bahan . ' (Terhapus)' : ($r->bahanBaku->stok <= 0 ? $r->bahanBaku->nama_bahan . ' (Habis)' : $r->bahanBaku->nama_bahan)) : 'Bahan Tidak Valid',
+                                                'nama' => $r->bahanBaku ? ($r->bahanBaku->trashed() ? $r->bahanBaku->nama_bahan . ' (Terhapus)' : ($r->bahanBaku->stok_gudang_gram <= 0 ? $r->bahanBaku->nama_bahan . ' (Habis)' : $r->bahanBaku->nama_bahan)) : 'Bahan Tidak Valid',
                                                 'gram' => $r->gramasi_per_porsi,
                                                 'harga_per_gram' => $r->bahanBaku->harga_terbaru ?? 0,
-                                                'stok_tersedia' => $r->bahanBaku ? $r->bahanBaku->stok : 0
+                                                'stok_tersedia' => $r->bahanBaku ? $r->bahanBaku->stok_gudang_gram : 0
                                             ];
                                         })->values()->toArray(),
                                     ]);
@@ -185,9 +185,12 @@
                                 @elseif($r->bahanBaku->trashed())
                                     <span style="text-decoration: line-through; color: #9ca3af;">{{ $r->bahanBaku->nama_bahan }}</span>
                                     <span style="color: #ef4444; font-weight: 700; margin-left: 2px;">(Terhapus)</span>
-                                @elseif($r->bahanBaku->stok <= 0)
+                                @elseif($r->bahanBaku->stok_gudang_gram <= 0)
                                     <span style="text-decoration: line-through; color: #9ca3af;">{{ $r->bahanBaku->nama_bahan }}</span>
                                     <span style="color: #f59e0b; font-weight: 700; margin-left: 2px;">(Habis)</span>
+                                @elseif($r->bahanBaku->stok_gudang_gram < $r->gramasi_per_porsi)
+                                    <span>{{ $r->bahanBaku->nama_bahan }}</span>
+                                    <span style="color: #ef4444; font-weight: 700; margin-left: 2px;">(Kurang)</span>
                                 @else
                                     {{ $r->bahanBaku->nama_bahan }}
                                 @endif
@@ -219,7 +222,7 @@
                             "modal_per_porsi" => $menu->harga_modal_per_porsi,
                             "ingredients" => $menu->reseps->map(function($r) {
                                 return [
-                                    "nama" => $r->bahanBaku ? ($r->bahanBaku->trashed() ? $r->bahanBaku->nama_bahan . ' (Terhapus)' : ($r->bahanBaku->stok <= 0 ? $r->bahanBaku->nama_bahan . ' (Habis)' : $r->bahanBaku->nama_bahan)) : 'Bahan Tidak Valid',
+                                    "nama" => $r->bahanBaku ? ($r->bahanBaku->trashed() ? $r->bahanBaku->nama_bahan . ' (Terhapus)' : ($r->bahanBaku->stok_gudang_gram <= 0 ? $r->bahanBaku->nama_bahan . ' (Habis)' : $r->bahanBaku->nama_bahan)) : 'Bahan Tidak Valid',
                                     "gram" => $r->gramasi_per_porsi,
                                     "harga_per_gram" => $r->bahanBaku->harga_terbaru ?? 0,
                                     "subtotal" => $r->gramasi_per_porsi * ($r->bahanBaku->harga_terbaru ?? 0)
@@ -360,13 +363,19 @@
                         $unavailableReason = '';
                         $isAllergic = false;
                         $allergicReason = '';
+                        $ingredientsData = [];
                         foreach($m->reseps as $r) {
-                            if(!$r->bahanBaku || $r->bahanBaku->trashed() || $r->bahanBaku->stok <= 0) { 
+                            if(!$r->bahanBaku || $r->bahanBaku->trashed() || $r->bahanBaku->stok_gudang_gram <= 0) { 
                                 $isUnavailable = true; 
                                 $unavailableReason = '(Ada bahan yang habis)';
                             }
                             if($r->bahanBaku) {
                                 $namaBahan = strtolower($r->bahanBaku->nama_bahan);
+                                $ingredientsData[] = [
+                                    'nama' => $r->bahanBaku->nama_bahan,
+                                    'gramasi' => $r->gramasi_per_porsi,
+                                    'stok' => $r->bahanBaku->stok_gudang_gram
+                                ];
                                 foreach($activeAllergies ?? [] as $alergi) {
                                     if(stripos($namaBahan, strtolower($alergi)) !== false) {
                                         $isAllergic = true;
@@ -386,7 +395,8 @@
                         data-protein="{{ round($m->total_protein) }}"
                         data-karbo="{{ round($m->total_karbohidrat) }}"
                         data-lemak="{{ round($m->total_lemak) }}"
-                        data-modal="{{ $m->harga_modal_per_porsi }}">
+                        data-modal="{{ $m->harga_modal_per_porsi }}"
+                        data-ingredients="{{ json_encode($ingredientsData) }}">
                         {{ $m->nama_menu }} {{ $reasonText }}
                     </option>
                     @endforeach
@@ -407,9 +417,10 @@
                 <div class="p-row" style="font-weight:700;">
                     <span>Total Anggaran Modal</span><span id="pvTotalModal" style="color:#059669;font-size:1rem;">-</span>
                 </div>
+                <div id="pvWarning" style="margin-top:0.5rem; padding-top:0.5rem; border-top:1px dashed #fca5a5; display:none;"></div>
             </div>
 
-            <button type="submit" class="btn btn-primary" style="width:100%;">Jadwalkan</button>
+            <button type="submit" id="btnSubmitSchedule" class="btn btn-primary" style="width:100%;">Jadwalkan</button>
         </form>
     </div>
 </div>
@@ -434,13 +445,19 @@
                         $unavailableReason = '';
                         $isAllergic = false;
                         $allergicReason = '';
+                        $ingredientsData = [];
                         foreach($m->reseps as $r) {
-                            if(!$r->bahanBaku || $r->bahanBaku->trashed() || $r->bahanBaku->stok <= 0) { 
+                            if(!$r->bahanBaku || $r->bahanBaku->trashed() || $r->bahanBaku->stok_gudang_gram <= 0) { 
                                 $isUnavailable = true; 
                                 $unavailableReason = '(Ada bahan yang habis)';
                             }
                             if($r->bahanBaku) {
                                 $namaBahan = strtolower($r->bahanBaku->nama_bahan);
+                                $ingredientsData[] = [
+                                    'nama' => $r->bahanBaku->nama_bahan,
+                                    'gramasi' => $r->gramasi_per_porsi,
+                                    'stok' => $r->bahanBaku->stok_gudang_gram
+                                ];
                                 foreach($activeAllergies ?? [] as $alergi) {
                                     if(stripos($namaBahan, strtolower($alergi)) !== false) {
                                         $isAllergic = true;
@@ -457,7 +474,8 @@
                         {{ $isDisabled ? 'disabled' : '' }}
                         data-berat="{{ $m->reseps->sum('gramasi_per_porsi') }}"
                         data-kcal="{{ round($m->total_kalori) }}"
-                        data-modal="{{ $m->harga_modal_per_porsi }}">
+                        data-modal="{{ $m->harga_modal_per_porsi }}"
+                        data-ingredients="{{ json_encode($ingredientsData) }}">
                         {{ $m->nama_menu }} {{ $reasonText }}
                     </option>
                     @endforeach
@@ -470,8 +488,9 @@
             <div id="editPreview" class="portion-info" style="display:none;margin-bottom:1rem;">
                 <div class="p-row" style="font-weight:700;"><span>Total Berat</span><span id="epvTotal">-</span></div>
                 <div class="p-row" style="font-weight:700;"><span>Total Anggaran Modal</span><span id="epvTotalModal" style="color:#059669;">-</span></div>
+                <div id="epvWarning" style="margin-top:0.5rem; padding-top:0.5rem; border-top:1px dashed #fca5a5; display:none;"></div>
             </div>
-            <button type="submit" class="btn btn-primary" style="width:100%;">Simpan Perubahan</button>
+            <button type="submit" id="btnSubmitEditSchedule" class="btn btn-primary" style="width:100%;">Simpan Perubahan</button>
         </form>
     </div>
 </div>
@@ -951,51 +970,134 @@ function openScheduleModal(date) {
 }
 
 function openEditScheduleModal(id, date, menuId, porsi) {
-    document.getElementById('editScheduleForm').action = '/dashboard/schedule/' + id;
-    document.getElementById('editMenuSelect').value = menuId;
-    document.getElementById('editPortionInput').value = porsi;
-    updateEditPreview();
-    document.getElementById('editScheduleModal').classList.add('visible');
+    try {
+        document.getElementById('editScheduleForm').action = '/dashboard/schedule/' + id;
+        const sel = document.getElementById('editMenuSelect');
+        if (sel) sel.value = menuId;
+        const input = document.getElementById('editPortionInput');
+        if (input) input.value = porsi;
+        
+        updateEditPreview();
+        const modal = document.getElementById('editScheduleModal');
+        if (modal) modal.classList.add('visible');
+    } catch(e) {
+        console.error("Error opening edit modal:", e);
+        alert("Gagal membuka form edit: " + e.message);
+    }
 }
 
 function updatePortionPreview() {
-    const sel = document.getElementById('scheduleMenuSelect');
-    const opt = sel.options[sel.selectedIndex];
-    const porsi = parseInt(document.getElementById('schedulePortionInput').value) || 0;
-    const preview = document.getElementById('portionPreview');
-    if (!opt || !opt.value) { preview.style.display = 'none'; return; }
-    
-    const berat = parseFloat(opt.dataset.berat) || 0;
-    const kcal = parseFloat(opt.dataset.kcal) || 0;
-    const modalUnit = parseFloat(opt.dataset.modal) || 0;
-    
-    const totalBerat = berat * porsi;
-    const totalModal = modalUnit * porsi;
-    
-    document.getElementById('pvBerat').textContent = berat + ' g';
-    document.getElementById('pvKcal').textContent = kcal + ' kcal';
-    document.getElementById('pvModalUnit').textContent = 'Rp ' + Math.round(modalUnit).toLocaleString('id-ID') + ' / porsi';
-    document.getElementById('pvTotal').textContent = (totalBerat >= 1000 ? (totalBerat/1000).toFixed(1)+' kg' : totalBerat+' g') + ' (' + porsi + ' porsi)';
-    document.getElementById('pvTotalModal').textContent = 'Rp ' + Math.round(totalModal).toLocaleString('id-ID');
-    preview.style.display = 'block';
+    try {
+        const sel = document.getElementById('scheduleMenuSelect');
+        const opt = sel.options[sel.selectedIndex];
+        const porsi = parseInt(document.getElementById('schedulePortionInput').value) || 0;
+        const preview = document.getElementById('portionPreview');
+        const warningDiv = document.getElementById('pvWarning');
+        if (!opt || !opt.value) { preview.style.display = 'none'; return; }
+        
+        const berat = parseFloat(opt.dataset.berat) || 0;
+        const kcal = parseFloat(opt.dataset.kcal) || 0;
+        const modalUnit = parseFloat(opt.dataset.modal) || 0;
+        let ingredients = [];
+        try {
+            ingredients = JSON.parse(opt.dataset.ingredients || '[]');
+        } catch (e) {
+            console.error("JSON parse error:", e);
+        }
+        
+        const totalBerat = berat * porsi;
+        const totalModal = modalUnit * porsi;
+        
+        document.getElementById('pvBerat').textContent = berat + ' g';
+        document.getElementById('pvKcal').textContent = kcal + ' kcal';
+        document.getElementById('pvModalUnit').textContent = 'Rp ' + Math.round(modalUnit).toLocaleString('id-ID') + ' / porsi';
+        document.getElementById('pvTotal').textContent = (totalBerat >= 1000 ? (totalBerat/1000).toFixed(1)+' kg' : totalBerat+' g') + ' (' + porsi + ' porsi)';
+        document.getElementById('pvTotalModal').textContent = 'Rp ' + Math.round(totalModal).toLocaleString('id-ID');
+        
+        let warnings = [];
+        ingredients.forEach(ing => {
+            let req = ing.gramasi * porsi;
+            if (req > ing.stok) {
+                warnings.push(`Stok <b>${ing.nama}</b> tidak cukup! Butuh: ${req}g, Tersedia: ${ing.stok}g`);
+            }
+        });
+        const btnSubmit = document.getElementById('btnSubmitSchedule');
+        if (warnings.length > 0) {
+            warningDiv.innerHTML = '<div style="color:#dc2626; font-size:0.8rem;">' + warnings.join('<br>') + '</div>';
+            warningDiv.style.display = 'block';
+            if (btnSubmit) { btnSubmit.disabled = true; btnSubmit.style.opacity = '0.5'; btnSubmit.style.cursor = 'not-allowed'; }
+        } else {
+            warningDiv.style.display = 'none';
+            if (btnSubmit) { btnSubmit.disabled = false; btnSubmit.style.opacity = '1'; btnSubmit.style.cursor = 'pointer'; }
+        }
+        
+        preview.style.display = 'block';
+    } catch(err) {
+        console.error("Error in updatePortionPreview:", err);
+    }
 }
 
 function updateEditPreview() {
-    const sel = document.getElementById('editMenuSelect');
-    const opt = sel.options[sel.selectedIndex];
-    const porsi = parseInt(document.getElementById('editPortionInput').value) || 0;
-    const preview = document.getElementById('editPreview');
-    if (!opt || !opt.value) { preview.style.display = 'none'; return; }
-    
-    const berat = parseFloat(opt.dataset.berat) || 0;
-    const modalUnit = parseFloat(opt.dataset.modal) || 0;
-    
-    const totalBerat = berat * porsi;
-    const totalModal = modalUnit * porsi;
-    
-    document.getElementById('epvTotal').textContent = (totalBerat >= 1000 ? (totalBerat/1000).toFixed(1)+' kg' : totalBerat+' g') + ' (' + porsi + ' porsi)';
-    document.getElementById('epvTotalModal').textContent = 'Rp ' + Math.round(totalModal).toLocaleString('id-ID');
-    preview.style.display = 'block';
+    try {
+        const sel = document.getElementById('editMenuSelect');
+        const idx = sel ? sel.selectedIndex : -1;
+        const opt = idx >= 0 ? sel.options[idx] : null;
+        
+        const input = document.getElementById('editPortionInput');
+        const porsi = parseInt(input ? input.value : 0) || 0;
+        
+        const preview = document.getElementById('editPreview');
+        const warningDiv = document.getElementById('epvWarning');
+        
+        if (!opt || !opt.value) { 
+            if (preview) preview.style.display = 'none'; 
+            return; 
+        }
+        
+        const berat = parseFloat(opt.dataset.berat) || 0;
+        const modalUnit = parseFloat(opt.dataset.modal) || 0;
+        
+        let ingredients = [];
+        try {
+            ingredients = JSON.parse(opt.dataset.ingredients || '[]');
+        } catch(err) {
+            console.error("Error parsing ingredients JSON:", err);
+        }
+        
+        const totalBerat = berat * porsi;
+        const totalModal = modalUnit * porsi;
+        
+        if (document.getElementById('epvTotal')) {
+            document.getElementById('epvTotal').textContent = (totalBerat >= 1000 ? (totalBerat/1000).toFixed(1)+' kg' : totalBerat+' g') + ' (' + porsi + ' porsi)';
+        }
+        if (document.getElementById('epvTotalModal')) {
+            document.getElementById('epvTotalModal').textContent = 'Rp ' + Math.round(totalModal).toLocaleString('id-ID');
+        }
+        
+        let warnings = [];
+        ingredients.forEach(ing => {
+            let req = ing.gramasi * porsi;
+            if (req > ing.stok) {
+                warnings.push(`Stok <b>${ing.nama}</b> tidak cukup! Butuh: ${req}g, Tersedia: ${ing.stok}g`);
+            }
+        });
+        
+        const btnSubmitEdit = document.getElementById('btnSubmitEditSchedule');
+        if (warningDiv) {
+            if (warnings.length > 0) {
+                warningDiv.innerHTML = '<div style="color:#dc2626; font-size:0.8rem;">' + warnings.join('<br>') + '</div>';
+                warningDiv.style.display = 'block';
+                if (btnSubmitEdit) { btnSubmitEdit.disabled = true; btnSubmitEdit.style.opacity = '0.5'; btnSubmitEdit.style.cursor = 'not-allowed'; }
+            } else {
+                warningDiv.style.display = 'none';
+                if (btnSubmitEdit) { btnSubmitEdit.disabled = false; btnSubmitEdit.style.opacity = '1'; btnSubmitEdit.style.cursor = 'pointer'; }
+            }
+        }
+        
+        if (preview) preview.style.display = 'block';
+    } catch(e) {
+        console.error("Error in updateEditPreview:", e);
+    }
 }
 </script>
 @endsection

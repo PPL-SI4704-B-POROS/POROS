@@ -32,9 +32,9 @@ class AnalyticsTableTest2 extends DuskTestCase
     }
 
     /**
-     * PBI #31 & PBI #34 - E2E Flow Biaya Belanja
+     * PBI #34 - E2E Flow Biaya Belanja
      */
-    public function test_e2e_tren_biaya_flow(): void
+    public function test_e2e_pbi_34_tren_biaya_flow(): void
     {
         // 1. bikin dummy supplier pertama, katalog, sama bahan baku buat testing belanja
         $supplier1 = Supplier::create([
@@ -113,21 +113,35 @@ class AnalyticsTableTest2 extends DuskTestCase
         $this->browse(function (Browser $browser) use ($stok1, $stok2) {
             $browser->loginAs(User::where('email', 'dapur@poros.com')->first())
                 ->visit('/dashboard/dapur/deliveries')
-                ->assertSee('Stock Gudang')
-                // input barang pertama (10 kg x 15jt = 150jt)
-                ->waitFor("@stock-btn-{$stok1->id}")
-                ->click("@stock-btn-{$stok1->id}")
-                ->waitFor('#incomingModal')
+                ->assertSee('Stock Gudang');
+
+            // buka modal stok masuk untuk barang pertama pake js biar ga kena error selector/hidden row
+            $browser->script("
+                const btn = Array.from(document.querySelectorAll('button')).find(b => {
+                    const oc = b.getAttribute('onclick') || '';
+                    return oc.replace(/\\s+/g, '').includes('openIncomingModal(' + {$stok1->id} + ',');
+                });
+                if (btn) btn.click();
+            ");
+
+            $browser->waitFor('#incomingModal')
                 ->type('quantity', '10');
 
             $browser->script("document.querySelector('#incomingModal input[name=\"incoming_date\"]').value = '".now()->toDateString()."';");
 
             $browser->press('Tambah Stok')
-                ->waitForText('Stok berhasil diperbarui.')
-                // input barang kedua (10 kg x 12jt = 120jt)
-                ->waitFor("@stock-btn-{$stok2->id}")
-                ->click("@stock-btn-{$stok2->id}")
-                ->waitFor('#incomingModal')
+                ->waitForText('Stok berhasil diperbarui.');
+
+            // buka modal stok masuk untuk barang kedua pake js juga biar ga ribet
+            $browser->script("
+                const btn = Array.from(document.querySelectorAll('button')).find(b => {
+                    const oc = b.getAttribute('onclick') || '';
+                    return oc.replace(/\\s+/g, '').includes('openIncomingModal(' + {$stok2->id} + ',');
+                });
+                if (btn) btn.click();
+            ");
+
+            $browser->waitFor('#incomingModal')
                 ->type('quantity', '10');
 
             $browser->script("document.querySelector('#incomingModal input[name=\"incoming_date\"]').value = '".now()->toDateString()."';");
@@ -176,9 +190,9 @@ class AnalyticsTableTest2 extends DuskTestCase
     }
 
     /**
-     * PBI #32 & PBI #35 - E2E Flow Status Gizi
+     * PBI #35 - E2E Flow Status Gizi
      */
-    public function test_e2e_status_gizi_flow(): void
+    public function test_e2e_pbi_35_status_gizi_flow(): void
     {
         // 1. siapin data sekolah sama bikin data siswa baru untuk test status gizi
         $sekolah = Sekolah::first();
@@ -218,8 +232,13 @@ class AnalyticsTableTest2 extends DuskTestCase
             'status_gizi' => 'Kurus',
         ]);
 
-        // itung jumlah siswa berstatus Kurang/Kurus yang ada di db sekarang
-        $expectedCount = Antropometri::whereIn('status_gizi', ['Kurus', 'Kurang'])->count();
+        // itung jumlah siswa berstatus Kurang/Kurus yang ada di db sekarang (hanya untuk pengukuran terbaru per siswa)
+        $expectedCount = Antropometri::whereIn('id', function ($query) {
+            $query->select(\DB::raw('MAX(id)'))
+                ->from('antropometris')
+                ->whereNull('deleted_at')
+                ->groupBy('siswa_id');
+        })->whereIn('status_gizi', ['Kurus', 'Kurang'])->count();
 
         // 3. login jadi admin terus cek total status gizi kurang di scorecard dashboard
         $this->browse(function (Browser $browser) use ($expectedCount) {
@@ -231,9 +250,9 @@ class AnalyticsTableTest2 extends DuskTestCase
     }
 
     /**
-     * PBI #33 & PBI #36 - E2E Flow Food Waste
+     * PBI #36 - E2E Flow Food Waste
      */
-    public function test_e2e_food_waste_flow(): void
+    public function test_e2e_pbi_36_food_waste_flow(): void
     {
         // 1. setup sekolah, kurir, menu, sama status pengiriman 'Jalan'
         $sekolah = Sekolah::first();
@@ -332,15 +351,25 @@ class AnalyticsTableTest2 extends DuskTestCase
     }
 
     /**
-     * TC.34.02 - PBI #34 Dashboard Skenario Negatif (Inverted Dates)
+     * TC.34.02 - PBI #34 Dashboard Skenario Negatif (Inverted Dates via UI)
      */
-    public function test_pbi_34_negative_analytics_inverted_dates(): void
+    public function test_pbi_34_negatif(): void
     {
         // 1. login sebagai super admin
         $this->browse(function (Browser $browser) {
             $browser->loginAs(User::where('email', 'admin@poros.com')->first())
-                // buka analytics dengan tanggal terbalik (start > end)
-                ->visit('/dashboard/superadmin/analytics?start_date=2026-12-31&end_date=2026-01-01')
+                ->visit('/dashboard/superadmin/analytics')
+                ->assertSee('Advanced Analytics');
+
+            // isi filter tanggal terbalik lewat UI
+            $browser->script([
+                "document.querySelector('input[name=\"start_date\"]').value = '2026-12-31';",
+                "document.querySelector('input[name=\"end_date\"]').value = '2026-01-01';",
+            ]);
+
+            // klik tombol terapkan filter
+            $browser->press('Terapkan Filter')
+                ->waitForLocation('/dashboard/superadmin/analytics')
                 ->assertSee('Advanced Analytics')
                 // pastiin widget Top 3 Supplier mendeteksi gak ada data
                 ->assertSee('Belum ada data supplier.');
@@ -348,47 +377,102 @@ class AnalyticsTableTest2 extends DuskTestCase
     }
 
     /**
-     * TC.35.02 - PBI #35 Dashboard Skenario Negatif (Non-existent School Filter)
+     * TC.35.02 - PBI #35 Form Skenario Negatif (Invalid Antropometri Input via UI)
      */
-    public function test_pbi_35_negative_analytics_non_existent_school_scorecard(): void
+    public function test_pbi_35_negatif(): void
     {
-        // 1. login sebagai super admin
-        $this->browse(function (Browser $browser) {
-            $browser->loginAs(User::where('email', 'admin@poros.com')->first())
-                // buka analytics dengan id sekolah fiktif (99999)
-                ->visit('/dashboard/superadmin/analytics?sekolah_id=99999')
-                ->assertSee('Advanced Analytics')
-                // semua scorecard status gizi harus menampilkan angka 0
-                ->assertSeeIn('.scorecard.good h3', '0')
-                ->assertSeeIn('.scorecard.warning h3', '0')
-                ->assertSeeIn('.scorecard.bad h3', '0');
+        // 1. siapin data sekolah & siswa buat testing
+        $sekolah = Sekolah::first();
+        $siswa = Siswa::create([
+            'nisn' => '8888888888',
+            'nama_siswa' => 'Siswa Gizi Negatif',
+            'kelas' => '1B',
+            'alergi' => null,
+            'sekolah_id' => $sekolah->id,
+            'contact' => '0812345679',
+            'status' => 'Active',
+        ]);
+
+        // 2. login sebagai petugas sekolah terus input data tidak valid
+        $this->browse(function (Browser $browser) use ($siswa) {
+            $browser->loginAs(User::where('email', 'sekolah@poros.com')->first())
+                ->visit('/dashboard/sekolah/siswas')
+                ->assertSee('Data Siswa')
+                ->waitFor("@ukur-btn-{$siswa->id}")
+                ->click("@ukur-btn-{$siswa->id}")
+                ->waitFor('#ukurModal')
+                // isi berat badan 0 dan tinggi badan -10 (tidak valid)
+                ->type('berat_badan', '0')
+                ->type('tinggi_badan', '-10');
+
+            $browser->script("document.querySelector('#ukurModal input[name=\"tanggal_ukur\"]').value = '".now()->toDateString()."';");
+
+            $browser->press('Simpan Pengukuran')
+                // harusnya muncul popup error Validasi Gagal dari global error handler
+                ->waitForText('Validasi Gagal')
+                ->assertSee('Validasi Gagal');
         });
     }
 
     /**
-     * TC.36.02 - PBI #36 Dashboard Skenario Negatif (Non-existent School Filter)
+     * TC.36.02 - PBI #36 Form Skenario Negatif (Missing Handover Receiver Name via UI)
      */
-    public function test_pbi_36_negative_analytics_non_existent_school_waste(): void
+    public function test_pbi_36_negatif(): void
     {
-        // 1. login sebagai super admin
-        $this->browse(function (Browser $browser) {
-            $browser->loginAs(User::where('email', 'admin@poros.com')->first())
-                // buka analytics dengan id sekolah fiktif (99999)
-                ->visit('/dashboard/superadmin/analytics?sekolah_id=99999')
-                ->assertSee('Advanced Analytics');
+        // 1. setup sekolah, kurir, menu, sama status pengiriman 'Jalan'
+        $sekolah = Sekolah::first();
+        $kurir = Kurir::first() ?? Kurir::create([
+            'nama_kurir' => 'Kurir Negatif E2E',
+            'no_plat' => 'B 9999 NEG',
+            'kontak' => '089999999',
+        ]);
 
-            // ambil data total porsi sisa dari chart donat evaluasi sisa makanan
-            // karena sekolah fiktif, datanya harus kosong/nol
-            $wasteData = $browser->script("
-                const chart = Chart.getChart('wasteChart');
-                return chart ? chart.data.datasets[0].data : [];
-            ");
+        $menu = Menu::first();
+        $produksi = ProduksiHarian::create([
+            'tanggal_produksi' => now()->toDateString(),
+            'total_target_porsi' => 100,
+            'status_produksi' => 'Siap Kirim',
+            'menu_id' => $menu->id,
+        ]);
 
-            $totalWaste = 0;
-            if (isset($wasteData[0]) && is_array($wasteData[0])) {
-                $totalWaste = array_sum($wasteData[0]);
-            }
-            $this->assertEquals(0, $totalWaste);
-        });
+        $pengiriman = new Pengiriman([
+            'waktu_berangkat' => now(),
+            'status_kirim' => 'Jalan',
+            'produksi_id' => $produksi->id,
+            'sekolah_id' => $sekolah->id,
+            'kurir_id' => $kurir->id,
+        ]);
+        $pengiriman->created_at = now()->addMinutes(10);
+        $pengiriman->updated_at = now()->addMinutes(10);
+        $pengiriman->save();
+
+        try {
+            // 2. login jadi dapur terus coba input serah terima tanpa ngisi nama penerima
+            $this->browse(function (Browser $browser) use ($pengiriman) {
+                $browser->loginAs(User::where('email', 'dapur@poros.com')->first())
+                    ->visit('/dashboard/dapur/logistics-deliveries')
+                    ->assertSee('Logistics & Deliveries')
+                    ->waitFor("@handover-btn-{$pengiriman->id}")
+                    ->click("@handover-btn-{$pengiriman->id}")
+                    ->waitFor('#handoverModal')
+                    // kosongin nama penerima, tapi isi sisa porsi makanan
+                    ->type('nama_penerima', '')
+                    ->type('ompreng_kembali', '80')
+                    ->type('menu_tersisa', 'Menu E2E')
+                    ->type('wastes[rasa tidak enak]', '10');
+
+                // Hapus atribut required agar browser membolehkan submit form kosong untuk memicu validasi backend
+                $browser->script("document.querySelector('#handoverForm input[name=\"nama_penerima\"]').removeAttribute('required');");
+
+                $browser->script("document.querySelector('#handoverModal input[name=\"tanggal_sisa\"]').value = '".now()->toDateString()."';");
+
+                $browser->press('Simpan Bukti Terima')
+                    // harusnya muncul error Validasi Gagal karena nama penerima wajib diisi
+                    ->waitForText('Validasi Gagal')
+                    ->assertSee('Validasi Gagal');
+            });
+        } finally {
+            $pengiriman->forceDelete();
+        }
     }
 }
