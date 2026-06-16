@@ -5,18 +5,6 @@
         @if(auth()->user()->role->nama_role === 'super admin')
             {{-- Super Admin: klik lonceng langsung ke halaman pengumuman + badge jumlah --}}
             @php $jumlahPengumuman = \App\Models\Pengumuman::count(); @endphp
-            <!-- @php 
-                $jumlahPengumuman = \App\Models\Pengumuman::count();
-                $jumlahLaporanBelumSelesai = \App\Models\LaporanMasalah::whereIn('status', ['Open', 'In Progress'])->count();
-            @endphp -->
-            <!-- {{-- Badge Laporan Masalah belum selesai --}}
-            @if($jumlahLaporanBelumSelesai > 0)
-            <a href="{{ route('superadmin.laporan-masalah.index') }}" 
-            style="color:#0c1e35; position:relative; text-decoration:none; display:inline-flex; align-items:center; gap:6px; background:#fef2f2; border:1.5px solid #fecaca; border-radius:20px; padding:5px 12px 5px 8px; font-size:12px; font-weight:700;">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                <span style="color:#dc2626;">{{ $jumlahLaporanBelumSelesai }} Laporan</span>
-            </a> -->
-            @endif
             <a href="{{ route('pengumuman.index') }}" style="color: #0c1e35; position: relative; text-decoration: none;">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
